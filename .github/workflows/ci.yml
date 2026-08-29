@@ -21,16 +21,16 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Restore
-        run: dotnet restore FocusNotch.sln
+        run: dotnet restore Counter.sln
 
       - name: Build
-        run: dotnet build FocusNotch.sln --configuration Release --no-restore
+        run: dotnet build Counter.sln --configuration Release --no-restore
 
       # Warnings are errors in Directory.Build.props, so a clean build here means a clean build
       # everywhere. The tests include the icon guard, which fails if the committed .ico stopped
       # matching the drawing that produces it.
       - name: Test
-        run: dotnet test FocusNotch.sln --configuration Release --no-build --logger "trx;LogFileName=results.trx"
+        run: dotnet test Counter.sln --configuration Release --no-build --logger "trx;LogFileName=results.trx"
 
       - name: Publish test results
         if: always()

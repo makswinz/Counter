@@ -1,9 +1,9 @@
 <#
 .SYNOPSIS
-    Restores, builds, tests and publishes Focus Notch.
+    Restores, builds, tests and publishes Counter.
 
 .DESCRIPTION
-    Produces a self-contained win-x64 build in artifacts\FocusNotch-win-x64 that runs on a
+    Produces a self-contained win-x64 build in artifacts\Counter-win-x64 that runs on a
     machine with no .NET installed. Stops on the first failure.
 
 .PARAMETER SkipTests
@@ -19,8 +19,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
-$solution = Join-Path $root 'FocusNotch.sln'
-$artifacts = Join-Path $root 'artifacts\FocusNotch-win-x64'
+$solution = Join-Path $root 'Counter.sln'
+$artifacts = Join-Path $root 'artifacts\Counter-win-x64'
 
 # The SDK may be installed per-user rather than under Program Files.
 function Resolve-Dotnet {
@@ -59,14 +59,14 @@ else {
 Write-Host "`n[4/4] Publishing self-contained win-x64" -ForegroundColor Cyan
 if (Test-Path $artifacts) { Remove-Item $artifacts -Recurse -Force }
 
-& $dotnet publish (Join-Path $root 'src\FocusNotch.App\FocusNotch.App.csproj') `
+& $dotnet publish (Join-Path $root 'src\Counter.App\Counter.App.csproj') `
     --configuration Release `
     --runtime win-x64 `
     --self-contained true `
     --output $artifacts
 if ($LASTEXITCODE -ne 0) { throw "Publish failed." }
 
-$exe = Join-Path $artifacts 'FocusNotch.exe'
+$exe = Join-Path $artifacts 'Counter.exe'
 if (-not (Test-Path $exe)) { throw "Publish finished but $exe is missing." }
 
 $size = [math]::Round(((Get-ChildItem $artifacts -Recurse -File | Measure-Object Length -Sum).Sum / 1MB), 1)

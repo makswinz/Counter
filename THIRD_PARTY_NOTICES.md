@@ -1,6 +1,6 @@
 # Third-party notices
 
-Focus Notch includes third-party material. This file lists it, what it is used for, and the
+Counter includes third-party material. This file lists it, what it is used for, and the
 licence it is used under. The full licence text of each item is reproduced or linked below.
 
 ---
@@ -13,15 +13,15 @@ licence it is used under. The full licence text of each item is reproduced or li
 - **Revision used**: `1.1.339` (commit `4d685f77b2cb8f3f412a74ec8d920c8c91149528`)
 - **Licence text**: [`Assets/Icons/Fluent/LICENSE.txt`](Assets/Icons/Fluent/LICENSE.txt)
 
-Every icon drawn anywhere in Focus Notch comes from this one family. No other icon set, no
+Every icon drawn anywhere in Counter comes from this one family. No other icon set, no
 symbol font, no emoji and no hand-drawn approximation is used.
 
 The 47 SVG files actually used are bundled under [`Assets/Icons/Fluent/`](Assets/Icons/Fluent/)
 exactly as they were published, together with
 [`manifest.json`](Assets/Icons/Fluent/manifest.json) recording the source, the revision, the
 commit and a SHA-256 for each file. `tools/Sync-FluentIcons.ps1` converts them into frozen WPF
-geometries in `src/FocusNotch.App/Theme/Icons.xaml` and a lookup table in
-`src/FocusNotch.App/Controls/IconCatalog.g.cs`.
+geometries in `src/Counter.App/Theme/Icons.xaml` and a lookup table in
+`src/Counter.App/Controls/IconCatalog.g.cs`.
 
 The conversion is a build-time step that has already been run and whose output is committed.
 The application never downloads an icon, never resolves one over the network, and never depends
@@ -72,7 +72,7 @@ Restored at build time and redistributed inside the published single-file execut
 
 ## The OKLab colour space
 
-`src/FocusNotch.Core/Colour/Oklch.cs` implements the OKLab transform published by Bjorn Ottosson
+`src/Counter.Core/Colour/Oklch.cs` implements the OKLab transform published by Bjorn Ottosson
 in 2020, at https://bottosson.github.io/posts/oklab/. The matrices and the cube-root transfer are
 his and are published as public domain; the gamut mapping, the ramp derivation and everything
 else in that folder are this project's own.
@@ -84,6 +84,6 @@ that file are not arbitrary and somebody reading it should know where to check t
 
 ## Fonts
 
-Focus Notch uses only fonts already present on Windows (Segoe UI Variable, Segoe UI and the
+Counter uses only fonts already present on Windows (Segoe UI Variable, Segoe UI and the
 generic fallbacks behind them). No font is bundled, downloaded or installed, and no icon is
 drawn from a font glyph.

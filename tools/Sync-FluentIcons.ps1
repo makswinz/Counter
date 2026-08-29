@@ -4,7 +4,7 @@
     geometry resources and the icon catalog from them.
 
 .DESCRIPTION
-    Focus Notch draws every icon from one family. This script is the only thing that puts an
+    Counter draws every icon from one family. This script is the only thing that puts an
     icon into the application, and it is deterministic: tools/icons.psd1 names an exact upstream
     release tag and an exact commit, and every file is checksummed into
     Assets/Icons/Fluent/manifest.json. Re-running the script on an unchanged manifest downloads
@@ -16,7 +16,7 @@
     Outputs:
       Assets/Icons/Fluent/*.svg                     the untouched upstream artwork
       Assets/Icons/Fluent/manifest.json             revision, commit and per-file SHA-256
-      src/FocusNotch.App/Controls/IconCatalog.g.cs  IconKind, IconVariant, the path data and the
+      src/Counter.App/Controls/IconCatalog.g.cs  IconKind, IconVariant, the path data and the
                                                     lookup table
 
 .PARAMETER Refresh
@@ -43,7 +43,7 @@ $spec = Import-PowerShellDataFile (Join-Path $PSScriptRoot 'icons.psd1')
 
 $assetDir = Join-Path $root 'Assets\Icons\Fluent'
 $manifestPath = Join-Path $assetDir 'manifest.json'
-$catalogPath = Join-Path $root 'src\FocusNotch.App\Controls\IconCatalog.g.cs'
+$catalogPath = Join-Path $root 'src\Counter.App\Controls\IconCatalog.g.cs'
 
 if (-not (Test-Path $assetDir)) { New-Item -ItemType Directory -Path $assetDir -Force | Out-Null }
 
@@ -211,7 +211,7 @@ $cs = New-Object System.Text.StringBuilder
 [void] $cs.AppendLine('// Microsoft Fluent UI System Icons, MIT licensed.')
 [void] $cs.AppendLine("// Revision $($spec.Revision), commit $($spec.Commit).")
 [void] $cs.AppendLine('')
-[void] $cs.AppendLine('namespace FocusNotch.App.Controls;')
+[void] $cs.AppendLine('namespace Counter.App.Controls;')
 [void] $cs.AppendLine('')
 [void] $cs.AppendLine('/// <summary>Every icon the application is allowed to draw.</summary>')
 [void] $cs.AppendLine('public enum IconKind')

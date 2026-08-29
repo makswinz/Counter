@@ -2,31 +2,49 @@
   <img src="Assets/logo.png" alt="" width="120" height="120">
 </p>
 
-<h1 align="center">Focus Notch</h1>
-
-[![Build and test](https://github.com/makswinz/FocusNotch/actions/workflows/ci.yml/badge.svg)](https://github.com/makswinz/FocusNotch/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Windows 10 and 11](https://img.shields.io/badge/windows-10%20%7C%2011-0078D4.svg)](#install)
-
-A small personal productivity tool that lives at the exact horizontal centre of the top edge of
-your Windows desktop. It behaves like a hardware notch: normally a thin bar showing the focus
-countdown and the active task, unfolding downward into a quick panel, then a full planner with a
-calendar, task manager and duration picker, then a statistics surface with a daily activity
-chart, top tasks and a twelve-week journey heatmap.
-
-It tracks the time you actually spend, not the time you planned to: every stretch of a session
-running is recorded as a pair of instants, and every total on screen is added up from those.
-
-Everything is local. No account, no cloud service, no subscription, no API key, no telemetry.
-
-- **Stack:** C#, .NET 8, WPF, MVVM (`CommunityToolkit.Mvvm`), `Microsoft.Data.Sqlite`,
-  `System.Windows.Forms.NotifyIcon` for the tray, xUnit for tests.
-- **Target:** `net8.0-windows10.0.19041.0`, Windows 10 build 19041 or newer, Windows 11 as the
-  primary visual target. Runs as the invoking user; no administrator rights, ever.
+<h1 align="center">Counter</h1>
 
 <p align="center">
-  <img src="docs/thumbnail.png" alt="Focus Notch: the notch, the planner and its statistics" width="900">
+  <b>A focus timer and task planner that lives in a notch at the top of your screen.</b><br>
+  It counts the time you actually spent, not the time you meant to spend.
 </p>
+
+<p align="center">
+  <a href="https://github.com/makswinz/Counter/actions/workflows/ci.yml"><img src="https://github.com/makswinz/Counter/actions/workflows/ci.yml/badge.svg" alt="Build and test"></a>
+  <a href="https://github.com/makswinz/Counter/releases/latest"><img src="https://img.shields.io/github/v/release/makswinz/Counter?color=FF7217" alt="Latest release"></a>
+  <a href="https://github.com/makswinz/Counter/releases/latest"><img src="https://img.shields.io/github/downloads/makswinz/Counter/total?color=FF7217" alt="Downloads"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT licence"></a>
+  <img src="https://img.shields.io/badge/windows-10%20%7C%2011-0078D4.svg" alt="Windows 10 and 11">
+  <img src="https://img.shields.io/badge/tests-683-2ea44f.svg" alt="683 tests">
+</p>
+
+<p align="center">
+  <a href="#install"><b>Download</b></a> &nbsp;&middot;&nbsp;
+  <a href="#what-it-does">What it does</a> &nbsp;&middot;&nbsp;
+  <a href="#build-it-yourself">Build it</a> &nbsp;&middot;&nbsp;
+  <a href="docs/DESIGN.md">How it is built</a>
+</p>
+
+<p align="center">
+  <img src="docs/thumbnail.png" alt="Counter: the notch, the planner and its statistics" width="900">
+</p>
+
+---
+
+## What it does
+
+It behaves like a hardware notch. Normally it is a thin bar at the exact centre of your top screen
+edge showing the countdown and the active task. Hover and it unfolds into a quick panel, then a
+full planner with a calendar and a duration picker, then a statistics surface.
+
+| | |
+| --- | --- |
+| **Measures, does not estimate** | Every stretch of a running session is stored as a pair of instants. Every total on screen is added up from those, so pausing for lunch does not quietly become an hour of focus. Sessions that cross midnight are split and land on both days. |
+| **Statistics that say something** | Not just how much, but how it was spread: time per task, time per day you actually worked, your best day, your busiest weekday, the day you finished the most, and your longest unbroken run. |
+| **Any accent colour you like** | Pick a colour and the whole palette is derived from it in OKLCH: five lit gradient stops, the contour, the halo, the tint, and a foreground chosen by measuring contrast rather than by guessing. Six presets, or mix your own. |
+| **Real glass** | Three materials. The two translucent ones are backed by a genuine compositor blur, which on a layered window takes some doing. |
+| **Never in the way** | The window never changes width, so opening a panel cannot make anything jump sideways. Everything outside the card passes clicks straight through to what is underneath. |
+| **Yours** | Local SQLite. No account, no cloud service, no subscription, no API key, no telemetry, no network calls at all. Rotating local backups, and CSV export whenever you want out. |
 
 <p align="center">
   <img src="docs/screenshot-notch.png" alt="The collapsed notch at the top of the screen" width="760">
@@ -44,17 +62,21 @@ Everything is local. No account, no cloud service, no subscription, no API key, 
   <img src="docs/screenshot-settings.png" alt="Settings, showing the glass materials and the accent colour picker" width="760">
 </p>
 
+**Stack:** C#, .NET 8, WPF, MVVM (`CommunityToolkit.Mvvm`), `Microsoft.Data.Sqlite`, xUnit.
+Targets `net8.0-windows10.0.19041.0`; Windows 10 build 19041 or newer, Windows 11 as the primary
+visual target. Runs as the invoking user, and never asks for administrator rights.
+
 ---
 
 ## Install
 
-**[Download the latest release](https://github.com/makswinz/FocusNotch/releases/latest)**, then
+**[Download the latest release](https://github.com/makswinz/Counter/releases/latest)**, then
 pick one:
 
 | | |
 | --- | --- |
-| `FocusNotch-Setup-x.y.z.exe` | The installer. Puts it in the Start menu, offers a desktop shortcut, and adds an entry to Add or remove programs. Installs under your own user account, so it needs no administrator rights. |
-| `FocusNotch-x.y.z-portable.exe` | One file. Put it anywhere and run it. Nothing is installed. |
+| `Counter-Setup-x.y.z.exe` | The installer. Puts it in the Start menu, offers a desktop shortcut, and adds an entry to Add or remove programs. Installs under your own user account, so it needs no administrator rights. |
+| `Counter-x.y.z-portable.exe` | One file. Put it anywhere and run it. Nothing is installed. |
 
 Both are self-contained: **.NET does not need to be installed.** Windows 10 build 17763 or newer,
 64-bit.
@@ -65,7 +87,7 @@ Both are self-contained: **.NET does not need to be installed.** Windows 10 buil
 > acceptable to you, build it yourself from source with the steps below and the warning does not
 > appear.
 
-Your data lives in `%LOCALAPPDATA%\FocusNotch` and is never touched by an uninstall. Removing the
+Your data lives in `%LOCALAPPDATA%\Counter` and is never touched by an uninstall. Removing the
 program leaves your tasks and history where they are.
 
 ---
@@ -87,16 +109,16 @@ Manual equivalents:
 
 ```powershell
 dotnet restore
-dotnet build FocusNotch.sln
-dotnet test FocusNotch.sln
+dotnet build Counter.sln
+dotnet test Counter.sln
 
 # Self-contained publish
-dotnet publish src\FocusNotch.App\FocusNotch.App.csproj `
+dotnet publish src\Counter.App\Counter.App.csproj `
   --configuration Release --runtime win-x64 --self-contained true `
-  --output artifacts\FocusNotch-win-x64
+  --output artifacts\Counter-win-x64
 ```
 
-The published executable is `artifacts\FocusNotch-win-x64\FocusNotch.exe`.
+The published executable is `artifacts\Counter-win-x64\Counter.exe`.
 
 To build what a release ships - the installer and the portable single file:
 
@@ -358,7 +380,7 @@ keeps the elapsed time and records the reason `StoppedByUser`.
 
 | Item | Default |
 | --- | --- |
-| Open Focus Notch | |
+| Open Counter | |
 | Start / pause / resume focus | label follows the current state |
 | Stop focus | enabled only while a session is live |
 | New task | |
@@ -390,10 +412,10 @@ and deletes it again when unchecked. It is never enabled unless you ask for it.
 | --- | --- |
 | `Ctrl+Shift+Space` | Start or pause the current focus session |
 | `Ctrl+Shift+N` | Expand and focus the new-task field |
-| `Ctrl+Shift+F` | Reveal or collapse Focus Notch |
+| `Ctrl+Shift+F` | Reveal or collapse Counter |
 | `Ctrl+Shift+S` | Open the statistics panel |
 
-If another application already owns one of these, Focus Notch keeps running without it and says
+If another application already owns one of these, Counter keeps running without it and says
 which one is unavailable. Each gesture is overridable through the `hotkey_toggle_focus`,
 `hotkey_new_task`, `hotkey_reveal` and `hotkey_statistics` rows of the `Settings` table, using the
 same `Ctrl+Shift+Key` syntax.
@@ -413,20 +435,21 @@ that derives a whole palette from one colour in OKLCH, the three glass materials
 compositor work behind them, the icon system, the window geometry, and the storage model.
 
 ```
-src/FocusNotch.Core    no Windows dependencies: the timer, the journey, statistics, colour
-src/FocusNotch.App     WPF, the one window, the controls, the theme
-tests/FocusNotch.Tests xUnit, 678 tests, no sleeping anywhere
+src/Counter.Core    no Windows dependencies: the timer, the journey, statistics, colour
+src/Counter.App     WPF, the one window, the controls, the theme
+tests/Counter.Tests xUnit, 683 tests, no sleeping anywhere
 ```
 
 ## Contributing
 
-Issues and pull requests are welcome.
+Issues and pull requests are welcome. See **[CONTRIBUTING.md](CONTRIBUTING.md)** for the setup,
+what a pull request needs, and the handful of things that are decided by design.
 
-- `dotnet test FocusNotch.sln` has to pass, and warnings are errors.
+- `dotnet test Counter.sln` has to pass, and warnings are errors.
 - New behaviour comes with a test. The suite has no sleeps and needs no display; there is no
   reason a change cannot be covered.
 - If you change the application mark in `Branding`, run `tools\New-AppIcon.ps1` to regenerate
-  `Assets\FocusNotch.ico`. A test compares the two and fails if they have drifted apart.
+  `Assets\Counter.ico`. A test compares the two and fails if they have drifted apart.
 
 ## Third-party
 
@@ -437,3 +460,12 @@ released into the public domain. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICE
 ## Licence
 
 MIT. See [LICENSE](LICENSE).
+
+---
+
+<p align="center">
+  If Counter is useful to you, a star helps other people find it.<br>
+  <a href="https://github.com/makswinz/Counter/issues">Report a bug</a> &nbsp;&middot;&nbsp;
+  <a href="https://github.com/makswinz/Counter/discussions">Ask something</a> &nbsp;&middot;&nbsp;
+  <a href="CONTRIBUTING.md">Contribute</a>
+</p>

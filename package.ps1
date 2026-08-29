@@ -5,8 +5,8 @@
 .DESCRIPTION
     Runs the full build and test suite, then produces two artifacts:
 
-      artifacts\FocusNotch-Setup-<version>.exe     a per-user installer
-      artifacts\FocusNotch-<version>-portable.exe  one self-contained file
+      artifacts\Counter-Setup-<version>.exe     a per-user installer
+      artifacts\Counter-<version>-portable.exe  one self-contained file
 
     Both are self-contained, so neither needs .NET installed on the machine that runs them.
     The version comes from Directory.Build.props and is never typed twice.
@@ -29,7 +29,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $artifacts = Join-Path $root 'artifacts'
-$folderBuild = Join-Path $artifacts 'FocusNotch-win-x64'
+$folderBuild = Join-Path $artifacts 'Counter-win-x64'
 $portableDir = Join-Path $artifacts 'portable'
 
 function Resolve-Dotnet {
@@ -71,16 +71,16 @@ if (-not $version) { throw "Could not read <Version> from $props." }
 $version = $version.Trim()
 
 $dotnet = Resolve-Dotnet
-Write-Host "Focus Notch $version" -ForegroundColor Cyan
+Write-Host "Counter $version" -ForegroundColor Cyan
 Write-Host "Using SDK: $dotnet" -ForegroundColor DarkGray
 
 # A running instance holds its own executable open, and every build after that fails on a file
 # lock with an error that says nothing about why.
-Get-Process FocusNotch -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process Counter -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Milliseconds 400
 
 Write-Host "`n[1/5] Restoring and building" -ForegroundColor Cyan
-& $dotnet build (Join-Path $root 'FocusNotch.sln') --configuration Release
+& $dotnet build (Join-Path $root 'Counter.sln') --configuration Release
 if ($LASTEXITCODE -ne 0) { throw "Build failed." }
 
 if ($SkipTests) {
@@ -88,27 +88,27 @@ if ($SkipTests) {
 }
 else {
     Write-Host "`n[2/5] Running tests" -ForegroundColor Cyan
-    & $dotnet test (Join-Path $root 'FocusNotch.sln') --configuration Release --no-build
+    & $dotnet test (Join-Path $root 'Counter.sln') --configuration Release --no-build
     if ($LASTEXITCODE -ne 0) { throw "Tests failed." }
 }
 
 Write-Host "`n[3/5] Publishing the installable build" -ForegroundColor Cyan
 if (Test-Path $folderBuild) { Remove-Item $folderBuild -Recurse -Force }
 
-& $dotnet publish (Join-Path $root 'src\FocusNotch.App\FocusNotch.App.csproj') `
+& $dotnet publish (Join-Path $root 'src\Counter.App\Counter.App.csproj') `
     --configuration Release --runtime win-x64 --self-contained true --output $folderBuild
 if ($LASTEXITCODE -ne 0) { throw "Publish failed." }
 
 Write-Host "`n[4/5] Publishing the portable single file" -ForegroundColor Cyan
 if (Test-Path $portableDir) { Remove-Item $portableDir -Recurse -Force }
 
-& $dotnet publish (Join-Path $root 'src\FocusNotch.App\FocusNotch.App.csproj') `
+& $dotnet publish (Join-Path $root 'src\Counter.App\Counter.App.csproj') `
     --configuration Release --runtime win-x64 --self-contained true `
     -p:PublishSingleFile=true --output $portableDir
 if ($LASTEXITCODE -ne 0) { throw "Portable publish failed." }
 
-$portable = Join-Path $artifacts "FocusNotch-$version-portable.exe"
-Move-Item (Join-Path $portableDir 'FocusNotch.exe') $portable -Force
+$portable = Join-Path $artifacts "Counter-$version-portable.exe"
+Move-Item (Join-Path $portableDir 'Counter.exe') $portable -Force
 Remove-Item $portableDir -Recurse -Force
 
 if ($PortableOnly) {
@@ -128,7 +128,7 @@ Or re-run with -PortableOnly to produce just the single file.
 "@
     }
 
-    & $inno "/DAppVersion=$version" (Join-Path $root 'packaging\FocusNotch.iss')
+    & $inno "/DAppVersion=$version" (Join-Path $root 'packaging\Counter.iss')
     if ($LASTEXITCODE -ne 0) { throw "The installer failed to build." }
 }
 

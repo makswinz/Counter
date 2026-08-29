@@ -1,0 +1,346 @@
+<!--
+    Every colour in Counter, declared exactly once.
+
+    Five rules hold everywhere:
+
+    1. The interface is built from glass, not from flat panels. The surface keys carry an alpha
+       channel so the desktop stays faintly present underneath, and a panel is assembled from
+       several controlled layers - a tint, a warm reflection, a top highlight, an inner edge, a
+       little noise - rather than from one transparent rectangle. LiquidGlassPanel is where that
+       stack is written down; nothing else should be reproducing it by hand.
+
+    2. Gradients appear only where something is genuinely active: the main tool contour, the
+       primary play control, the running progress light, the selected accent swatch, the selected
+       calendar date, the statistics bars, and the paused, warning, error and completion
+       indicators. Each is five stops of one colour family lit from the upper left, never a blend
+       of unrelated hues. Panel backgrounds, task rows, body text, ordinary inputs, heatmap cells
+       and tooltips are never gradients.
+
+    3. One light source, upper left, for everything. Every linear gradient runs 0,0 to 1,1; every
+       specular highlight originates near 20 percent across and 10 percent down; every shadow
+       falls downward. A gradient reversed in one control is what makes an interface look
+       assembled rather than lit.
+
+    4. Every reference to these keys, everywhere in the app, is a DynamicResource. Switching theme
+       or accent replaces each entry with a new frozen brush and every reference re-resolves on
+       the next layout pass: no dictionary is swapped, no template is rebuilt, no window is
+       recreated and nothing flashes. Resources declared here come back frozen from the compiled
+       dictionary, so recolouring them in place is not an option - replacing the entry is.
+
+    5. The accent keys follow the colour the user picked and the semantic keys never do. A paused
+       timer is amber and a failure is red whatever colour the rest of the interface is wearing.
+
+    The literal values here are the dark theme with the default blue accent, so a design-time
+    preview and the first frame before ThemeService runs are both correct. None of them is
+    hand-picked: ThemePalette computes the same values from AccentPalettes.Blue by running its
+    base colour through the accent engine, and a test asserts that every declaration here agrees
+    with the palette exactly.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Colors.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+
+    <!-- ==================================================================== Glass surfaces -->
+    <!--
+        The material the interface is made of. Semi-transparent on purpose: an opaque dark card
+        over a wallpaper is a card, and the whole point of this treatment is that the tool reads
+        as a piece of smoked glass laid over the desktop. The alphas are chosen so an assembled
+        panel lands between eighty and eighty-six percent, which is enough tonal separation to
+        keep text at seven to one and little enough that the surface still looks like a substance.
+    -->
+
+    <SolidColorBrush x:Key="GlassBaseBrush"                 Color="#DE181C23" />
+    <SolidColorBrush x:Key="GlassRaisedBrush"               Color="#E61D222B" />
+    <SolidColorBrush x:Key="GlassDeepBrush"                 Color="#EA101318" />
+    <SolidColorBrush x:Key="GlassHoverBrush"                Color="#E0252C37" />
+    <SolidColorBrush x:Key="GlassTintBrush"                 Color="#241D222B" />
+    <SolidColorBrush x:Key="GlassInnerLightBrush"           Color="#18FFFFFF" />
+    <SolidColorBrush x:Key="GlassInnerShadowBrush"          Color="#18000000" />
+
+    <!-- The light held inside the edge and the light that spills past it. Both are plain white
+         with an alpha; the radius that turns them into a glow lives in the panel template,
+         because a colour cannot describe a blur. Solid glass carries neither, so both are
+         transparent here and the frosted and liquid materials fill them in. -->
+    <SolidColorBrush x:Key="GlassRimBrush"                  Color="#00FFFFFF" />
+    <SolidColorBrush x:Key="GlassHaloBrush"                 Color="#00FFFFFF" />
+
+    <!-- A task row: a thin wash over whatever the panel is showing, not another opaque card. -->
+    <SolidColorBrush x:Key="RowGlassBrush"                  Color="#14FFFFFF" />
+    <SolidColorBrush x:Key="RowGlassHoverBrush"             Color="#26FFFFFF" />
+    <SolidColorBrush x:Key="RowContourBrush"                Color="#14FFFFFF" />
+
+    <!-- ==================================================================== Opaque surfaces -->
+    <!-- For the few places something genuinely must not show through: a popover laid over the
+         panel's own content, and the ground behind a text field. -->
+
+    <SolidColorBrush x:Key="BackgroundBrush"                Color="#FF0E1116" />
+    <SolidColorBrush x:Key="NotchBackgroundBrush"           Color="#FF141820" />
+    <SolidColorBrush x:Key="SurfaceBrush"                   Color="#FF1A202A" />
+    <SolidColorBrush x:Key="SurfaceRaisedBrush"             Color="#FF202735" />
+    <SolidColorBrush x:Key="SurfaceHoverBrush"              Color="#FF202735" />
+    <SolidColorBrush x:Key="SurfacePressedBrush"            Color="#FF252E3C" />
+    <SolidColorBrush x:Key="TransparentBrush"               Color="#00000000" />
+    <SolidColorBrush x:Key="BorderSubtleBrush"              Color="#FF2A3340" />
+    <SolidColorBrush x:Key="BorderVisibleBrush"             Color="#FF354152" />
+    <SolidColorBrush x:Key="TextPrimaryBrush"               Color="#FFF4F7FA" />
+    <SolidColorBrush x:Key="TextSecondaryBrush"             Color="#FFAAB4C2" />
+    <SolidColorBrush x:Key="TextMutedBrush"                 Color="#FF737F90" />
+    <SolidColorBrush x:Key="TextDisabledBrush"              Color="#FF4A5563" />
+    <SolidColorBrush x:Key="TextOnAccentBrush"              Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="EdgeIdleBrush"                  Color="#FF354152" />
+    <SolidColorBrush x:Key="EdgeExpandedBrush"              Color="#FF354152" />
+    <SolidColorBrush x:Key="EdgeHoverBrush"                 Color="#FF44526A" />
+    <SolidColorBrush x:Key="EdgePanelBrush"                 Color="#FF2A3340" />
+    <SolidColorBrush x:Key="ProgressTrackBrush"             Color="#20FFFFFF" />
+    <SolidColorBrush x:Key="HeatBrush0"                     Color="#FF232A34" />
+    <SolidColorBrush x:Key="ChartGridBrush"                 Color="#FF2A3340" />
+    <SolidColorBrush x:Key="ChartEmptyBrush"                Color="#FF232A34" />
+    <SolidColorBrush x:Key="ScrollThumbBrush"               Color="#FF3B4655" />
+
+    <!-- ==================================================================== Accent -->
+    <!--
+        Generated from one base colour by the accent engine, never listed. The seven stops are
+        the same hue at seven depths; everything below them is arithmetic on those seven. Nothing
+        in this block is blue in any meaningful sense - it is what the engine produced when it was
+        handed #FF438BFF, and it produces the same shape from any other colour.
+    -->
+
+    <SolidColorBrush x:Key="AccentHighlightBrush"           Color="#FFD2E3FF" />
+    <SolidColorBrush x:Key="AccentLightBrush"               Color="#FFACCCFF" />
+    <SolidColorBrush x:Key="AccentBaseBrush"                Color="#FF438BFF" />
+    <SolidColorBrush x:Key="AccentStrongBrush"              Color="#FF2673ED" />
+    <SolidColorBrush x:Key="AccentDeepBrush"                Color="#FF0857C6" />
+    <SolidColorBrush x:Key="AccentShadowBrush"              Color="#FF00317A" />
+    <SolidColorBrush x:Key="AccentGlowBrush"                Color="#FF66A1FF" />
+    <SolidColorBrush x:Key="AccentForegroundBrush"          Color="#FF111318" />
+    <SolidColorBrush x:Key="AccentGlyphBrush"               Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="AccentBrush"                    Color="#FF438BFF" />
+    <SolidColorBrush x:Key="AccentHoverBrush"               Color="#FF68A2FF" />
+    <SolidColorBrush x:Key="AccentPressedBrush"             Color="#FF2E79EB" />
+    <SolidColorBrush x:Key="AccentSoftBrush"                Color="#2E438BFF" />
+    <SolidColorBrush x:Key="AccentSoftTintBrush"            Color="#16438BFF" />
+    <SolidColorBrush x:Key="PrimaryFillBrush"               Color="#FF438BFF" />
+    <SolidColorBrush x:Key="PrimaryFillHoverBrush"          Color="#FF68A2FF" />
+    <SolidColorBrush x:Key="PrimaryFillPressedBrush"        Color="#FF2E79EB" />
+    <SolidColorBrush x:Key="SelectionFillBrush"             Color="#FF438BFF" />
+    <SolidColorBrush x:Key="EdgeRunningBrush"               Color="#FF438BFF" />
+    <SolidColorBrush x:Key="EdgeNotchRunningBrush"          Color="#FF438BFF" />
+    <SolidColorBrush x:Key="ProgressRunningBrush"           Color="#FF438BFF" />
+    <SolidColorBrush x:Key="FocusRingBrush"                 Color="#FF438BFF" />
+    <SolidColorBrush x:Key="RowFocusedBorderBrush"          Color="#FF355FA4" />
+    <SolidColorBrush x:Key="NotchGlowBrush"                 Color="#FF66A1FF" />
+    <SolidColorBrush x:Key="ChartBarBrush"                  Color="#FF438BFF" />
+    <SolidColorBrush x:Key="ChartBarManualBrush"            Color="#FF355FA4" />
+    <SolidColorBrush x:Key="HeatBrush1"                     Color="#FF2D4771" />
+    <SolidColorBrush x:Key="HeatBrush2"                     Color="#FF355FA4" />
+    <SolidColorBrush x:Key="HeatBrush3"                     Color="#FF3D78D6" />
+    <SolidColorBrush x:Key="HeatBrush4"                     Color="#FF438BFF" />
+    <SolidColorBrush x:Key="HeatTodayRingBrush"             Color="#FF8FA3BC" />
+
+    <!-- ==================================================================== Semantic states -->
+    <!-- Fixed meanings. These never follow the accent, or they would stop carrying information. -->
+
+    <SolidColorBrush x:Key="PausedBrush"                    Color="#FFF3B643" />
+    <SolidColorBrush x:Key="WarningBrush"                   Color="#FFE6AA4F" />
+    <SolidColorBrush x:Key="DangerBrush"                    Color="#FFEF6472" />
+    <SolidColorBrush x:Key="SuccessBrush"                   Color="#FF39C781" />
+    <SolidColorBrush x:Key="EdgePausedBrush"                Color="#FFF3B643" />
+    <SolidColorBrush x:Key="EdgeUrgentBrush"                Color="#FFEF6472" />
+    <SolidColorBrush x:Key="EdgeCompletedBrush"             Color="#FF39C781" />
+    <SolidColorBrush x:Key="ProgressPausedBrush"            Color="#FFF3B643" />
+    <SolidColorBrush x:Key="ProgressUrgentBrush"            Color="#FFEF6472" />
+    <SolidColorBrush x:Key="ProgressCompletedBrush"         Color="#FF39C781" />
+    <SolidColorBrush x:Key="SuccessSoftBrush"               Color="#1839C781" />
+    <SolidColorBrush x:Key="SuccessGlyphBrush"              Color="#FF111318" />
+    <SolidColorBrush x:Key="DestructiveHoverBrush"          Color="#33EF6472" />
+    <SolidColorBrush x:Key="DestructivePressedBrush"        Color="#4DEF6472" />
+    <SolidColorBrush x:Key="DestructiveBorderBrush"         Color="#FF5A3038" />
+    <SolidColorBrush x:Key="ErrorSurfaceBrush"              Color="#FF241A1E" />
+    <SolidColorBrush x:Key="ErrorBorderBrush"               Color="#FF5A3038" />
+
+    <!-- ==================================================================== Illuminated gradients -->
+    <!--
+        Five stops, upper left to lower right, at 0, 18, 48, 76 and 100 percent. The offsets are
+        not evenly spaced on purpose: the lit pair sit close together in the first fifth, the
+        material's own colour lands just before the middle, and the shadowed half runs long, which
+        is how light falls across a curved surface. Every gradient in the application uses these
+        same five offsets and this same direction.
+    -->
+
+    <LinearGradientBrush x:Key="AccentGradientBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#FFD2E3FF" Offset="0" />
+        <GradientStop Color="#FFACCCFF" Offset="0.18" />
+        <GradientStop Color="#FF438BFF" Offset="0.48" />
+        <GradientStop Color="#FF2673ED" Offset="0.76" />
+        <GradientStop Color="#FF0857C6" Offset="1" />
+    </LinearGradientBrush>
+
+    <!-- The same ramp, kept as its own key because the contour is a separable idea from the fill:
+         it is what the main tool is outlined with, in every panel state. -->
+    <LinearGradientBrush x:Key="AccentContourBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#FFD2E3FF" Offset="0" />
+        <GradientStop Color="#FFACCCFF" Offset="0.18" />
+        <GradientStop Color="#FF438BFF" Offset="0.48" />
+        <GradientStop Color="#FF2673ED" Offset="0.76" />
+        <GradientStop Color="#FF0857C6" Offset="1" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="RunningGradientBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#FFD2E3FF" Offset="0" />
+        <GradientStop Color="#FFACCCFF" Offset="0.18" />
+        <GradientStop Color="#FF438BFF" Offset="0.48" />
+        <GradientStop Color="#FF2673ED" Offset="0.76" />
+        <GradientStop Color="#FF0857C6" Offset="1" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="PausedGradientBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#FFF9DEB1" Offset="0" />
+        <GradientStop Color="#FFF3CB89" Offset="0.18" />
+        <GradientStop Color="#FFF3B643" Offset="0.48" />
+        <GradientStop Color="#FFDE9F04" Offset="0.76" />
+        <GradientStop Color="#FFB98300" Offset="1" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="WarningGradientBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#FFF9DDB8" Offset="0" />
+        <GradientStop Color="#FFF6C98A" Offset="0.18" />
+        <GradientStop Color="#FFE6AA4F" Offset="0.48" />
+        <GradientStop Color="#FFD1932A" Offset="0.76" />
+        <GradientStop Color="#FFB07705" Offset="1" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="DangerGradientBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#FFFFD6D7" Offset="0" />
+        <GradientStop Color="#FFFFBEC0" Offset="0.18" />
+        <GradientStop Color="#FFEF6472" Offset="0.48" />
+        <GradientStop Color="#FFDA485B" Offset="0.76" />
+        <GradientStop Color="#FFB52D43" Offset="1" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="SuccessGradientBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#FFBCF1D0" Offset="0" />
+        <GradientStop Color="#FF9DE5B9" Offset="0.18" />
+        <GradientStop Color="#FF39C781" Offset="0.48" />
+        <GradientStop Color="#FF00B16B" Offset="0.76" />
+        <GradientStop Color="#FF008F56" Offset="1" />
+    </LinearGradientBrush>
+
+    <!-- ==================================================================== Structural contour -->
+    <!--
+        The neutral edge of a glass panel, which is what makes it a physical object rather than a
+        region of tint. Lit from the same upper left as everything else: bright along the top and
+        left, falling to a dark line along the bottom and right.
+
+        It is a real one-pixel stroke, not a glow. A drop shadow can suggest an edge but it cannot
+        describe one, and an interface whose panels are separated from the desktop only by a blur
+        loses its outline entirely on a busy wallpaper.
+    -->
+
+    <LinearGradientBrush x:Key="GlassContourBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#42FFFFFF" Offset="0" />
+        <GradientStop Color="#26FFFFFF" Offset="0.18" />
+        <GradientStop Color="#16FFFFFF" Offset="0.48" />
+        <GradientStop Color="#14000000" Offset="0.76" />
+        <GradientStop Color="#26000000" Offset="1" />
+    </LinearGradientBrush>
+
+    <!-- A second, much fainter edge just inside the first. Light along the top and left, dark
+         along the bottom and right: this is what reads as the thickness of the glass. It is never
+         coloured, because a coloured inner edge looks like a doubled border. -->
+    <LinearGradientBrush x:Key="GlassInnerContourBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#18FFFFFF" Offset="0" />
+        <GradientStop Color="#0AFFFFFF" Offset="0.45" />
+        <GradientStop Color="#10000000" Offset="1" />
+    </LinearGradientBrush>
+
+    <!-- The far edge catching light, and the fall of light down the face. Both are rebuilt by
+         the theme service; these are the shapes, so the dictionary declares the right kind. -->
+    <LinearGradientBrush x:Key="GlassEdgeReflectionBrush" StartPoint="1,1" EndPoint="0,0">
+        <GradientStop Color="#3AFFFFFF" Offset="0" />
+        <GradientStop Color="#00FFFFFF" Offset="0.5" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="GlassTopSheenBrush" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#23FFFFFF" Offset="0" />
+        <GradientStop Color="#00FFFFFF" Offset="1" />
+    </LinearGradientBrush>
+
+    <!-- ==================================================================== Light, not paint -->
+    <!--
+        These four are white and stay white in both themes and under every accent. They are the
+        light source rather than the material, which is the entire reason they are separate
+        brushes: brightening every stop of a colour gradient to fake a highlight is what makes a
+        gradient look bleached, and it is exactly what these exist to avoid.
+    -->
+
+    <!-- The glossy reflection laid over a primary control. Straight down rather than diagonal,
+         because a reflection on a convex surface follows the surface, not the light vector. -->
+    <LinearGradientBrush x:Key="GlossOverlayBrush" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#42FFFFFF" Offset="0" />
+        <GradientStop Color="#20FFFFFF" Offset="0.12" />
+        <GradientStop Color="#08FFFFFF" Offset="0.30" />
+        <GradientStop Color="#00FFFFFF" Offset="0.48" />
+        <GradientStop Color="#00FFFFFF" Offset="1" />
+    </LinearGradientBrush>
+
+    <!-- The thin reflection catching the top edge of a small control. Never above 16 percent, and
+         gone before the middle. -->
+    <LinearGradientBrush x:Key="TopHighlightBrush" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#29FFFFFF" Offset="0" />
+        <GradientStop Color="#14FFFFFF" Offset="0.22" />
+        <GradientStop Color="#00FFFFFF" Offset="0.45" />
+    </LinearGradientBrush>
+
+    <!-- A localised reflection for the larger active surfaces, thrown from the same upper-left
+         origin as every other highlight in the interface. Restrained on purpose: this is the one
+         effect that turns into a smear the moment it is used on everything. -->
+    <RadialGradientBrush x:Key="SpecularHighlightBrush"
+                         Center="0.22,0.10" GradientOrigin="0.18,0.06" RadiusX="0.70" RadiusY="0.80">
+        <GradientStop Color="#28FFFFFF" Offset="0" />
+        <GradientStop Color="#0CFFFFFF" Offset="0.35" />
+        <GradientStop Color="#00FFFFFF" Offset="0.70" />
+    </RadialGradientBrush>
+
+    <!-- ==================================================================== Accent light -->
+
+    <!--
+        The soft light around an active primary control. A radial fade rather than a blurred drop
+        shadow: the visual result is the same at this size, and it costs one gradient fill instead
+        of a render-target blur pass on every frame the panel is resizing. It never exceeds twelve
+        percent, and it never appears around a task row.
+    -->
+    <RadialGradientBrush x:Key="AccentHaloBrush"
+                         Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
+        <GradientStop Color="#1F66A1FF" Offset="0" />
+        <GradientStop Color="#1F66A1FF" Offset="0.55" />
+        <GradientStop Color="#0066A1FF" Offset="1" />
+    </RadialGradientBrush>
+
+    <!--
+        The warm light the glass picks up close to something active: the accent's own colour at
+        under a tenth, thrown from the upper left, gone entirely before the far corner. A
+        reflection, not a background. Nothing paints it behind an inactive task, behind the
+        settings text, or across a whole panel.
+    -->
+    <RadialGradientBrush x:Key="AccentAmbientBrush"
+                         Center="0.22,0.10" GradientOrigin="0.18,0.06" RadiusX="0.85" RadiusY="0.95">
+        <GradientStop Color="#18438BFF" Offset="0" />
+        <GradientStop Color="#0C438BFF" Offset="0.45" />
+        <GradientStop Color="#00438BFF" Offset="1" />
+    </RadialGradientBrush>
+
+    <!-- ==================================================================== Glass noise -->
+    <!--
+        Replaced at start-up by GlassNoise with a cached 64-pixel tile. Declared transparent here
+        so a design-time preview and the first frame are both correct, and so nothing depends on
+        the texture having been generated yet.
+    -->
+
+    <SolidColorBrush x:Key="GlassNoiseBrush"                Color="#00000000" />
+    <SolidColorBrush x:Key="GlassRippleBrush"               Color="#00000000" />
+
+</ResourceDictionary>

@@ -9,12 +9,12 @@
   -->
   <PropertyGroup>
     <Version>1.0.0</Version>
-    <Product>Focus Notch</Product>
-    <Company>Focus Notch</Company>
+    <Product>Counter</Product>
+    <Company>Counter</Company>
     <Authors>Maks Winz</Authors>
     <Copyright>Copyright (c) 2026 Maks Winz</Copyright>
     <Description>A focus timer and task planner that lives in a notch at the top of the screen.</Description>
-    <RepositoryUrl>https://github.com/makswinz/FocusNotch</RepositoryUrl>
+    <RepositoryUrl>https://github.com/makswinz/Counter</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>

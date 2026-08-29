@@ -1,4 +1,4 @@
-# Focus Notch design notes
+# Counter design notes
 
 How the interface is built and why, in the detail somebody changing it would need: the accent
 engine, the glass materials, the icon system, the geometry, the storage model, and the places
@@ -11,7 +11,7 @@ the [README](../README.md).
 
 ## Design system
 
-Every visual value lives in `src/FocusNotch.App/Theme/`. Views reference resources; they never
+Every visual value lives in `src/Counter.App/Theme/`. Views reference resources; they never
 hardcode a colour, size, radius or margin, and a test walks the XAML to prove it.
 
 | File | Holds |
@@ -408,7 +408,7 @@ one.
 
 Windows 11 can blur what is behind a window for free through `DWMWA_SYSTEMBACKDROP_TYPE`, and it
 is much better than anything an application can paint. It also has a hard prerequisite: the window
-must not be layered. Focus Notch is layered - it is a transparent frame with a small rounded card
+must not be layered. Counter is layered - it is a transparent frame with a small rounded card
 floating in it, which is what lets the notch have real rounded corners, sit flush against the top
 bezel and pass clicks straight through everywhere else. Trading that away for a blur would change
 the window's transparency, its hit testing and its geometry.
@@ -636,7 +636,7 @@ The dispatcher tick (500 ms) exists only to repaint. Consequences:
 - On launch, a surviving session is re-attached. If its target passed while the app was closed,
   it is completed at its true target instant, not at launch time, exactly the planned time is
   credited, the completion is recorded once, and the interface says
-  `Completed while Focus Notch was closed` on a strip that can be dismissed.
+  `Completed while Counter was closed` on a strip that can be dismissed.
 - Only one session can be active at a time; `FocusEngine.Start` refuses a second one.
 - Completion fires exactly once, no matter how often the engine is polled.
 
@@ -740,8 +740,8 @@ resurrect a name that was deliberately removed.
 
 | What | Where |
 | --- | --- |
-| Database | `%LocalAppData%\FocusNotch\focusnotch.db` |
-| Logs | `%LocalAppData%\FocusNotch\logs\` |
+| Database | `%LocalAppData%\Counter\counter.db` |
+| Logs | `%LocalAppData%\Counter\logs\` |
 
 Directories are created on demand. The schema is versioned through SQLite's `user_version` and
 migrations run inside a single transaction. Every statement is parameterised and foreign keys are
@@ -794,7 +794,7 @@ multi-row state change goes through one transaction.
   the problem is shown, because a damaged file that can still be partly read is worth far more to
   its owner than a clean empty one.
 - **A rotating local backup** is taken at most once a day, through SQLite's own backup API so it
-  is consistent while the connection stays open, into `%LocalAppData%\FocusNotch\backups\`. The
+  is consistent while the connection stays open, into `%LocalAppData%\Counter\backups\`. The
   seven most recent are kept. A failure is logged and swallowed: not having a backup is a
   disappointment, never a reason not to start.
 - **Startup repairs what a crash left behind.** More than one live session keeps the newest and
@@ -898,7 +898,7 @@ turned off, every transition applies instantly and the app stays fully usable.
 ## Project layout
 
 ```
-FocusNotch.sln
+Counter.sln
 build.ps1
 run.ps1
 README.md
@@ -909,7 +909,7 @@ tools/
   icons.psd1                       the icon list, the pinned release and the exact commit
   Sync-FluentIcons.ps1             downloads, verifies and regenerates the icon catalog
 src/
-  FocusNotch.Core/                 net8.0, no Windows dependencies
+  Counter.Core/                 net8.0, no Windows dependencies
     Abstractions/                  repository and settings interfaces
     Drafts/                        TaskDraft, DraftStore
     Focus/                         FocusEngine, FocusSessionService, TimeLedger, TimeFormat
@@ -922,7 +922,7 @@ src/
     Threading/                     IBackgroundScheduler
     Time/                          IClock, SystemClock
     Validation/                    TaskValidator
-  FocusNotch.App/                  net8.0-windows10.0.19041.0, WPF + WinForms tray
+  Counter.App/                  net8.0-windows10.0.19041.0, WPF + WinForms tray
     Controls/                      AppIcon, IconCatalog (+ generated), IconButton, CircularBadge,
                                    CompletionCheck, LiquidGlassPanel, OklchStrip,
                                    JourneyHeatmapControl, ActivityChartControl
@@ -937,16 +937,16 @@ src/
     ViewModels/                    ShellViewModel (+ .Settings), OverlayStateMachine, StatisticsViewModel and friends
     Views/                         NotchWindow, NotchGeometryCoordinator
 tests/
-  FocusNotch.Tests/                xUnit
+  Counter.Tests/                xUnit
 ```
 
 ## Tests
 
 ```powershell
-dotnet test FocusNotch.sln
+dotnet test Counter.sln
 ```
 
-678 tests, no sleeping anywhere: `TestClock` is an `IClock` the tests advance by hand, which is
+683 tests, no sleeping anywhere: `TestClock` is an `IClock` the tests advance by hand, which is
 what makes the timing assertions exact rather than flaky.
 
 | Area | What is covered |
@@ -1069,7 +1069,7 @@ down.
 ## Diagnostics
 
 `Diag` writes a channel-tagged trace of the interaction layer to
-`%LocalAppData%\FocusNotch\logs\diag.log`: panel transitions with their reason and identifier,
+`%LocalAppData%\Counter\logs\diag.log`: panel transitions with their reason and identifier,
 hover enter and leave with the pin and blocking state, window activation, geometry starts and
 settles with their from and to sizes, play requests with the resulting outcome and session state,
 theme applications, journey and statistics refreshes, draft saves, and manual time entries.
@@ -1085,7 +1085,7 @@ WPF's own data-binding failures are routed into the same trace. A broken binding
 runtime - the control simply shows nothing and carries on - so sending them here makes "there are
 no binding errors" something that can be checked rather than assumed.
 
-All of it is compiled out of Release builds unless `FOCUSNOTCH_DIAG` is set in the environment,
+All of it is compiled out of Release builds unless `COUNTER_DIAG` is set in the environment,
 so a normal build writes nothing and measures nothing. It is what a twitch, a dropped click or a
 stale streak should be diagnosed from: the trace shows the exact event sequence rather than the
 end state.

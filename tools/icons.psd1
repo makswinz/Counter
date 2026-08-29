@@ -1,5 +1,5 @@
 #
-# The icon set Focus Notch uses, and the exact upstream release it comes from.
+# The icon set Counter uses, and the exact upstream release it comes from.
 #
 # This file is data only. Sync-FluentIcons.ps1 reads it, downloads exactly these files from the
 # pinned tag, verifies them against Assets/Icons/Fluent/manifest.json, and regenerates

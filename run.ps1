@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Builds Focus Notch in Debug if needed and launches it.
+    Builds Counter in Debug if needed and launches it.
 
 .PARAMETER Demo
     Inserts a handful of example tasks, but only into a database that has no tasks at all.
@@ -21,8 +21,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
-$project = Join-Path $root 'src\FocusNotch.App\FocusNotch.App.csproj'
-$exe = Join-Path $root 'src\FocusNotch.App\bin\Debug\net8.0-windows10.0.19041.0\FocusNotch.exe'
+$project = Join-Path $root 'src\Counter.App\Counter.App.csproj'
+$exe = Join-Path $root 'src\Counter.App\bin\Debug\net8.0-windows10.0.19041.0\Counter.exe'
 
 function Resolve-Dotnet {
     $onPath = Get-Command dotnet -ErrorAction SilentlyContinue
@@ -44,7 +44,7 @@ if ($Rebuild -or -not (Test-Path $exe)) {
     if ($LASTEXITCODE -ne 0) { throw "Build failed." }
 }
 
-# Focus Notch enforces a single instance: a second launch just reveals the running one.
+# Counter enforces a single instance: a second launch just reveals the running one.
 $arguments = @()
 if ($Demo) { $arguments += '--demo' }
 
@@ -56,4 +56,4 @@ else {
     Start-Process -FilePath $exe
 }
 
-Write-Host "Focus Notch is at the top centre of your primary display. Its tray icon lives in the notification area."
+Write-Host "Counter is at the top centre of your primary display. Its tray icon lives in the notification area."

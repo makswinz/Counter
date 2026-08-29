@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Regenerates Assets\FocusNotch.ico from the application's own drawing.
+    Regenerates Assets\Counter.ico from the application's own drawing.
 
 .DESCRIPTION
     The icon is a committed binary, and the only thing in the project that can silently stop
@@ -8,7 +8,7 @@
     compares the committed file with what the drawing produces and fails the build otherwise.
 
     Nothing else happens: the switch is handled before the database is opened or a window is
-    created, so this is safe to run while Focus Notch is running.
+    created, so this is safe to run while Counter is running.
 #>
 [CmdletBinding()]
 param()
@@ -28,9 +28,9 @@ function Resolve-Dotnet {
 }
 
 $dotnet = Resolve-Dotnet
-$icon = Join-Path $root 'Assets\FocusNotch.ico'
+$icon = Join-Path $root 'Assets\Counter.ico'
 
-& $dotnet run --project (Join-Path $root 'src\FocusNotch.App\FocusNotch.App.csproj') `
+& $dotnet run --project (Join-Path $root 'src\Counter.App\Counter.App.csproj') `
     --configuration Release -- --write-icon $icon
 if ($LASTEXITCODE -ne 0) { throw "Writing the icon failed." }
 

@@ -1,0 +1,59 @@
+name: Bug report
+description: Something does not work the way it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. The log is usually the fastest route to a fix - it is at
+        `%LOCALAPPDATA%\Counter\logs\counter-<date>.log`.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: And what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to reproduce it
+      placeholder: |
+        1. Open the planner
+        2. ...
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Counter version
+      description: Settings shows it, or right-click the executable and look at Details.
+      placeholder: 1.0.0
+    validations:
+      required: true
+
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      description: Run `winver`.
+      placeholder: Windows 11 24H2 (26100)
+    validations:
+      required: true
+
+  - type: input
+    id: scaling
+    attributes:
+      label: Display scaling and monitors
+      description: Anything unusual here is worth mentioning; a lot of layout bugs live in it.
+      placeholder: 150%, two monitors, the second one to the left
+
+  - type: textarea
+    id: log
+    attributes:
+      label: Log
+      description: The relevant lines. Read it before pasting; it contains file paths.
+      render: text
