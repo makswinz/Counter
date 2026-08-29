@@ -1,0 +1,107 @@
+<!--
+    One type scale for the whole interface. Nothing inside the notch exceeds 15 px except the
+    duration picker's numerals, which are a deliberate display element inside a popover.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Brushes.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <FontFamily x:Key="UiFont">Segoe UI Variable Text, Segoe UI Variable, Segoe UI</FontFamily>
+    <FontFamily x:Key="UiFontDisplay">Segoe UI Variable Display, Segoe UI Variable, Segoe UI</FontFamily>
+
+    <sys:Double x:Key="FontBody">12</sys:Double>
+    <sys:Double x:Key="FontRow">11.5</sys:Double>
+    <sys:Double x:Key="FontSecondary">10.5</sys:Double>
+    <sys:Double x:Key="FontMeta">10</sys:Double>
+    <sys:Double x:Key="FontPill">9.5</sys:Double>
+    <sys:Double x:Key="FontSection">11.5</sys:Double>
+    <sys:Double x:Key="FontTimer">12</sys:Double>
+    <sys:Double x:Key="FontDisplay">24</sys:Double>
+
+    <!-- Base: every TextBlock style descends from this, so the font and rendering hints are
+         declared exactly once. -->
+    <Style x:Key="TextBase" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
+        <Setter Property="FontSize" Value="{StaticResource FontBody}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Ideal" />
+        <Setter Property="TextOptions.TextRenderingMode" Value="ClearType" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+    </Style>
+
+    <!-- Row title. Trims rather than wraps so a long task can never grow a row. -->
+    <Style x:Key="TextRowTitle" TargetType="TextBlock" BasedOn="{StaticResource TextBase}">
+        <Setter Property="FontSize" Value="{StaticResource FontRow}" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+        <Setter Property="LineHeight" Value="15" />
+        <Setter Property="LineStackingStrategy" Value="BlockLineHeight" />
+    </Style>
+
+    <Style x:Key="TextRowNote" TargetType="TextBlock" BasedOn="{StaticResource TextBase}">
+        <Setter Property="FontSize" Value="{StaticResource FontMeta}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+        <Setter Property="LineHeight" Value="12" />
+        <Setter Property="LineStackingStrategy" Value="BlockLineHeight" />
+    </Style>
+
+    <Style x:Key="TextSecondary" TargetType="TextBlock" BasedOn="{StaticResource TextBase}">
+        <Setter Property="FontSize" Value="{StaticResource FontSecondary}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
+
+    <Style x:Key="TextMuted" TargetType="TextBlock" BasedOn="{StaticResource TextSecondary}">
+        <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+    </Style>
+
+    <Style x:Key="TextMeta" TargetType="TextBlock" BasedOn="{StaticResource TextBase}">
+        <Setter Property="FontSize" Value="{StaticResource FontMeta}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+    </Style>
+
+    <Style x:Key="TextPill" TargetType="TextBlock" BasedOn="{StaticResource TextBase}">
+        <Setter Property="FontSize" Value="{StaticResource FontPill}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="TextSection" TargetType="TextBlock" BasedOn="{StaticResource TextBase}">
+        <Setter Property="FontSize" Value="{StaticResource FontSection}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <!-- Tabular figures: the countdown must never shift the layout as digits change. -->
+    <Style x:Key="TextTimer" TargetType="TextBlock" BasedOn="{StaticResource TextBase}">
+        <Setter Property="FontSize" Value="{StaticResource FontTimer}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Ideal" />
+    </Style>
+
+    <!-- Numbers inside a circular badge. Tabular figures so 1 and 31 occupy the same box and
+         the circle around them never has to move. -->
+    <Style x:Key="TextBadgeNumber" TargetType="TextBlock" BasedOn="{StaticResource TextBase}">
+        <Setter Property="FontSize" Value="{StaticResource FontMeta}" />
+        <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
+        <Setter Property="TextAlignment" Value="Center" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="TextDisplayNumber" TargetType="TextBlock" BasedOn="{StaticResource TextBase}">
+        <Setter Property="FontFamily" Value="{StaticResource UiFontDisplay}" />
+        <Setter Property="FontSize" Value="{StaticResource FontDisplay}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+
+</ResourceDictionary>

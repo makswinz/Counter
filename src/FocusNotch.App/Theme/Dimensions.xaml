@@ -1,0 +1,121 @@
+<!--
+    The spacing and geometry system. Spacing steps are 4, 6, 8, 10, 12 and 16 only.
+    Views must not invent margins outside this file.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- ==================================================================== Radii -->
+
+    <!-- The notch itself: nearly square at the top so it reads as descending from the bezel. -->
+    <CornerRadius x:Key="NotchCollapsedRadius">2,2,13,13</CornerRadius>
+    <CornerRadius x:Key="NotchExpandedRadius">2,2,14,14</CornerRadius>
+    <CornerRadius x:Key="CardRadius">14</CornerRadius>
+    <CornerRadius x:Key="PopoverRadius">12</CornerRadius>
+    <CornerRadius x:Key="RowRadius">7</CornerRadius>
+    <CornerRadius x:Key="InputRadius">7</CornerRadius>
+    <CornerRadius x:Key="ControlRadius">6</CornerRadius>
+    <CornerRadius x:Key="PillRadius">11</CornerRadius>
+    <CornerRadius x:Key="TooltipRadius">6</CornerRadius>
+    <CornerRadius x:Key="ZeroRadius">0</CornerRadius>
+
+    <!-- ==================================================================== Strokes -->
+    <!--
+        A hairline is one *physical* pixel, not one logical unit. At 150 percent scaling a
+        one-unit border is a pixel and a half, which the rasteriser resolves as a soft two-pixel
+        line that is visibly heavier on some edges of a rounded rectangle than others - and the
+        contour around the tool is the most structural line in the whole design, so it is not
+        something to leave to rounding.
+
+        DpiService replaces these three at start-up and again whenever the window moves to a
+        display with a different scale, which is why every reference to them is a DynamicResource.
+        The values here are the 100 percent case, so a design-time preview and the first frame are
+        both correct.
+    -->
+
+    <Thickness x:Key="HairlineThickness">1</Thickness>
+    <sys:Double x:Key="HairlinePixel">1</sys:Double>
+    <Thickness x:Key="ContourAccentThickness">1.4</Thickness>
+    <Thickness x:Key="NoThickness">0</Thickness>
+
+    <!-- ==================================================================== Spacing -->
+
+    <Thickness x:Key="Pad4">4</Thickness>
+    <Thickness x:Key="Pad6">6</Thickness>
+    <Thickness x:Key="Pad8">8</Thickness>
+    <Thickness x:Key="Pad10">10</Thickness>
+    <Thickness x:Key="Pad12">12</Thickness>
+
+    <Thickness x:Key="CardPadding">10</Thickness>
+    <Thickness x:Key="PopoverPadding">12</Thickness>
+    <Thickness x:Key="RowPadding">7,0,5,0</Thickness>
+    <Thickness x:Key="InputPadding">9,0,9,0</Thickness>
+    <Thickness x:Key="PillPadding">7,0,7,0</Thickness>
+    <Thickness x:Key="TooltipPadding">8,6,8,6</Thickness>
+
+    <Thickness x:Key="GapBelow2">0,0,0,2</Thickness>
+    <Thickness x:Key="GapBelow4">0,0,0,4</Thickness>
+    <Thickness x:Key="GapBelow6">0,0,0,6</Thickness>
+    <Thickness x:Key="GapBelow8">0,0,0,8</Thickness>
+    <Thickness x:Key="GapRight4">0,0,4,0</Thickness>
+    <Thickness x:Key="GapRight6">0,0,6,0</Thickness>
+    <Thickness x:Key="GapRight8">0,0,8,0</Thickness>
+
+    <!-- ==================================================================== Control sizes -->
+
+    <!-- Two hit targets, and only two. Normal for anything a pointer aims at on its own,
+         compact where buttons sit in a dense row. There is no third size. -->
+    <sys:Double x:Key="IconButtonSize">28</sys:Double>
+    <sys:Double x:Key="IconButtonCompactSize">24</sys:Double>
+
+    <!-- The lit primary control, at the two sizes the design calls for: the focal point of the
+         notch, and the same control in a dense task row. -->
+    <sys:Double x:Key="PrimaryButtonSize">24</sys:Double>
+    <sys:Double x:Key="PrimaryButtonLargeSize">34</sys:Double>
+
+    <!-- Three icon sizes. Normal inside a button, tiny for a label's metadata mark, and the
+         play triangle, which reads a size larger than an outline icon of the same box. -->
+    <sys:Double x:Key="IconSize">16</sys:Double>
+    <sys:Double x:Key="IconSizeTiny">12</sys:Double>
+    <sys:Double x:Key="IconSizePlay">14</sys:Double>
+    <sys:Double x:Key="IconSizePlayLarge">17</sys:Double>
+
+    <!-- The completion control. The visible circle stays 16 whatever the hit target is. -->
+    <sys:Double x:Key="CompletionCircleSize">16</sys:Double>
+    <sys:Double x:Key="CompletionTickSize">10</sys:Double>
+    <sys:Double x:Key="CompletionRingThickness">1.25</sys:Double>
+
+    <!-- The keyboard focus ring: 2 px of clear air outside a 16 px control, and the same 2 px
+         outside the 34 px primary one. -->
+    <sys:Double x:Key="FocusCircleSize">20</sys:Double>
+    <sys:Double x:Key="FocusCircleLargeSize">40</sys:Double>
+    <CornerRadius x:Key="FocusRingRadius">8</CornerRadius>
+
+    <sys:Double x:Key="TaskRowHeight">36</sys:Double>
+    <sys:Double x:Key="QuickRowHeight">34</sys:Double>
+    <sys:Double x:Key="SectionHeaderHeight">22</sys:Double>
+    <sys:Double x:Key="PanelHeaderHeight">30</sys:Double>
+    <sys:Double x:Key="FooterRowHeight">24</sys:Double>
+    <sys:Double x:Key="InputHeight">30</sys:Double>
+    <sys:Double x:Key="PillHeight">20</sys:Double>
+    <sys:Double x:Key="ActionButtonHeight">28</sys:Double>
+
+    <!-- The calendar cell, and the circle drawn inside it. The circle never depends on the
+         width of the date it holds, so 1 and 31 are the same badge. -->
+    <sys:Double x:Key="CalendarCellSize">24</sys:Double>
+    <sys:Double x:Key="CalendarBadgeSize">22</sys:Double>
+    <sys:Double x:Key="HeatCellSize">8</sys:Double>
+    <sys:Double x:Key="HeatCellGap">3</sys:Double>
+    <sys:Double x:Key="ScrollBarWidth">3</sys:Double>
+
+    <!-- Grid row heights need GridLength, not Double. -->
+    <GridLength x:Key="NotchHeaderRow">42</GridLength>
+    <GridLength x:Key="SectionHeaderRow">22</GridLength>
+    <GridLength x:Key="PanelHeaderRow">30</GridLength>
+    <!-- The progress light. Three pixels rather than two, because a recessed track with a lit
+         fill, rounded ends and a leading point needs somewhere to put them. -->
+    <sys:Double x:Key="ProgressTrackHeight">3</sys:Double>
+    <sys:Double x:Key="ProgressTrackRadius">1.5</sys:Double>
+
+</ResourceDictionary>

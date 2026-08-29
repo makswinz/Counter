@@ -1,0 +1,16 @@
+<!--
+    Only the values that cannot be a brush live here.
+
+    Everything else is a SolidColorBrush or a gradient in Brushes.xaml. These two are Colors
+    because effects and gradient stops take colours rather than brushes. Both are referenced with
+    DynamicResource and replaced outright by ThemeService, exactly like every brush.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Color x:Key="TransparentColor">#00000000</Color>
+
+    <!-- Dark by default; ThemeService replaces this entry for the light theme. -->
+    <Color x:Key="ShadowColor">#FF000000</Color>
+
+</ResourceDictionary>

@@ -1,0 +1,2430 @@
+<Window x:Class="FocusNotch.App.Views.NotchWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:FocusNotch.App.ViewModels"
+        xmlns:ctl="clr-namespace:FocusNotch.App.Controls"
+        xmlns:conv="clr-namespace:FocusNotch.App.Converters"
+        xmlns:stat="clr-namespace:FocusNotch.Core.Statistics;assembly=FocusNotch.Core"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=vm:ShellViewModel}"
+        Title="Focus Notch"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Topmost="True"
+        SizeToContent="Manual"
+        WindowStartupLocation="Manual"
+        SnapsToDevicePixels="True"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Ideal"
+        FontFamily="{StaticResource UiFont}"
+        ToolTipService.InitialShowDelay="400"
+        ToolTipService.BetweenShowDelay="200"
+        Width="362" Height="58">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <conv:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVis" />
+        <conv:ProgressWidthConverter x:Key="ProgressWidth" />
+        <conv:PercentWidthConverter x:Key="PercentWidth" />
+        <conv:StringNotEmptyToVisibilityConverter x:Key="TextToVis" />
+        <conv:AccentSwatchBrushConverter x:Key="AccentSwatch" />
+
+        <!-- ================================================== Quick task row -->
+        <DataTemplate x:Key="QuickTaskTemplate" DataType="{x:Type vm:TaskRowViewModel}">
+            <!-- A task row is a raised sheet of the same glass, not a card of its own: one
+                 subtle neutral contour, a faint reflection along its top edge when the pointer is
+                 on it, and no shadow, no gradient and no accent while it is merely a task. Colour
+                 arrives only when the row means something - the session that is actually running,
+                 or one that is done. -->
+            <Border x:Name="RowBg"
+                    Height="{StaticResource QuickRowHeight}"
+                    Background="{DynamicResource RowGlassBrush}"
+                    BorderBrush="{DynamicResource RowContourBrush}"
+                    BorderThickness="{DynamicResource HairlineThickness}"
+                    CornerRadius="{StaticResource RowRadius}"
+                    Padding="{StaticResource RowPadding}"
+                    Margin="{StaticResource GapBelow2}"
+                    SnapsToDevicePixels="True">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" MinWidth="40" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Both washes sit behind the content, span the whole row and are
+                         hit-testable by nothing, so neither can change where a click lands or
+                         move the row by a pixel when it appears. -->
+                    <Border x:Name="RowTint"
+                            Grid.Column="0" Grid.ColumnSpan="5"
+                            Margin="-7,0,-5,0"
+                            CornerRadius="{StaticResource RowRadius}"
+                            Background="{DynamicResource AccentSoftTintBrush}"
+                            Opacity="0"
+                            Panel.ZIndex="-2"
+                            IsHitTestVisible="False" />
+                    <Border x:Name="RowSheen"
+                            Grid.Column="0" Grid.ColumnSpan="5"
+                            Margin="-7,0,-5,0"
+                            CornerRadius="{StaticResource RowRadius}"
+                            Background="{StaticResource TopHighlightBrush}"
+                            Opacity="0"
+                            Panel.ZIndex="-1"
+                            IsHitTestVisible="False" />
+
+                    <ctl:CompletionCheck Grid.Column="0"
+                                         Style="{StaticResource CompletionCircle}"
+                                         Margin="-6,0,0,0"
+                                         IsChecked="{Binding IsCompleted, Mode=OneWay}"
+                                         Command="{Binding ToggleCompleteCommand}"
+                                         AutomationProperties.Name="{Binding CompletionLabel}"
+                                         ToolTip="{Binding CompletionLabel}" />
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,6,0">
+                        <TextBlock x:Name="RowTitle"
+                                   Style="{StaticResource TextRowTitle}"
+                                   Text="{Binding Title}"
+                                   ToolTip="{Binding Title}" />
+                        <TextBlock x:Name="RowNote"
+                                   Style="{StaticResource TextRowNote}"
+                                   Text="{Binding Note}"
+                                   Visibility="{Binding Note, Converter={StaticResource TextToVis}}" />
+                    </StackPanel>
+
+                    <Border Grid.Column="2"
+                            Style="{StaticResource PillLabel}"
+                            Margin="{StaticResource GapRight4}"
+                            ToolTip="{Binding DetailSummary}"
+                            Visibility="{Binding HasSpentTime, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Style="{StaticResource TextPill}"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding SpentText}" />
+                    </Border>
+
+                    <ctl:IconButton x:Name="QuickPlayButton"
+                                    Grid.Column="3"
+                                    Style="{StaticResource PrimaryIconButton}"
+                                    Icon="Play"
+                                    IconVariant="Filled"
+                                    Command="{Binding StartFocusCommand}"
+                                    AutomationProperties.Name="Start focus on this task"
+                                    ToolTip="{Binding PlayTooltip}" />
+
+                    <!-- Stop is offered only for the row that actually owns the live session,
+                         so there is never a stop button for something that is not running. -->
+                    <ctl:IconButton Grid.Column="4"
+                                    Style="{StaticResource IconButtonCompact}"
+                                    Icon="Stop"
+                                    IconVariant="Filled"
+                                    Margin="2,0,0,0"
+                                    Command="{Binding StopFocusCommand}"
+                                    AutomationProperties.Name="Stop this focus session"
+                                    ToolTip="Stop and keep the time recorded"
+                                    Visibility="{Binding IsActiveSession, Converter={StaticResource BoolToVis}}" />
+                </Grid>
+            </Border>
+            <DataTemplate.Triggers>
+                <Trigger SourceName="RowBg" Property="IsMouseOver" Value="True">
+                    <Setter TargetName="RowBg" Property="Background" Value="{DynamicResource RowGlassHoverBrush}" />
+                    <Setter TargetName="RowBg" Property="BorderBrush" Value="{DynamicResource BorderVisibleBrush}" />
+                    <Setter TargetName="RowSheen" Property="Opacity" Value="1" />
+                </Trigger>
+                <DataTrigger Binding="{Binding IsCompleted}" Value="True">
+                    <Setter TargetName="RowTitle" Property="Opacity" Value="0.45" />
+                    <Setter TargetName="RowTitle" Property="TextDecorations" Value="Strikethrough" />
+                    <Setter TargetName="RowNote" Property="Opacity" Value="0.45" />
+                    <Setter TargetName="RowTint" Property="Background" Value="{DynamicResource SuccessSoftBrush}" />
+                    <Setter TargetName="RowTint" Property="Opacity" Value="1" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding ShowsPause}" Value="True">
+                    <Setter TargetName="QuickPlayButton" Property="Icon" Value="Pause" />
+                </DataTrigger>
+                <!-- The running session. A wash rather than a fill, and a thin accent edge:
+                     the row is marked, never repainted. -->
+                <DataTrigger Binding="{Binding IsActiveSession}" Value="True">
+                    <Setter TargetName="RowTint" Property="Opacity" Value="1" />
+                    <Setter TargetName="RowBg" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsFocused}" Value="True">
+                    <Setter TargetName="RowBg" Property="Background" Value="{DynamicResource RowGlassHoverBrush}" />
+                    <Setter TargetName="RowBg" Property="BorderBrush" Value="{DynamicResource RowFocusedBorderBrush}" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- ================================================== Planner task row -->
+        <DataTemplate x:Key="PlannerTaskTemplate" DataType="{x:Type vm:TaskRowViewModel}">
+            <!-- A task row is a raised sheet of the same glass, not a card of its own: one
+                 subtle neutral contour, a faint reflection along its top edge when the pointer is
+                 on it, and no shadow, no gradient and no accent while it is merely a task. Colour
+                 arrives only when the row means something - the session that is actually running,
+                 or one that is done. -->
+            <Border x:Name="RowBg"
+                    Height="{StaticResource TaskRowHeight}"
+                    Background="{DynamicResource RowGlassBrush}"
+                    BorderBrush="{DynamicResource RowContourBrush}"
+                    BorderThickness="{DynamicResource HairlineThickness}"
+                    CornerRadius="{StaticResource RowRadius}"
+                    Padding="{StaticResource RowPadding}"
+                    Margin="{StaticResource GapBelow4}"
+                    SnapsToDevicePixels="True">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" MinWidth="40" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Both washes sit behind the content, span the whole row and are
+                         hit-testable by nothing, so neither can change where a click lands or
+                         move the row by a pixel when it appears. -->
+                    <Border x:Name="RowTint"
+                            Grid.Column="0" Grid.ColumnSpan="10"
+                            Margin="-7,0,-5,0"
+                            CornerRadius="{StaticResource RowRadius}"
+                            Background="{DynamicResource AccentSoftTintBrush}"
+                            Opacity="0"
+                            Panel.ZIndex="-2"
+                            IsHitTestVisible="False" />
+                    <Border x:Name="RowSheen"
+                            Grid.Column="0" Grid.ColumnSpan="10"
+                            Margin="-7,0,-5,0"
+                            CornerRadius="{StaticResource RowRadius}"
+                            Background="{StaticResource TopHighlightBrush}"
+                            Opacity="0"
+                            Panel.ZIndex="-1"
+                            IsHitTestVisible="False" />
+
+                    <ctl:CompletionCheck Grid.Column="0"
+                                         Style="{StaticResource CompletionCircle}"
+                                         Margin="-6,0,0,0"
+                                         IsChecked="{Binding IsCompleted, Mode=OneWay}"
+                                         Command="{Binding ToggleCompleteCommand}"
+                                         AutomationProperties.Name="{Binding CompletionLabel}"
+                                         ToolTip="{Binding CompletionLabel}" />
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,6,0">
+                        <TextBlock x:Name="RowTitle"
+                                   Style="{StaticResource TextRowTitle}"
+                                   Text="{Binding Title}"
+                                   ToolTip="{Binding Title}" />
+                        <TextBlock x:Name="RowNote"
+                                   Style="{StaticResource TextRowNote}"
+                                   Text="{Binding Note}"
+                                   Visibility="{Binding Note, Converter={StaticResource TextToVis}}" />
+                    </StackPanel>
+
+                    <Border Grid.Column="2" Style="{StaticResource PillLabel}" Margin="{StaticResource GapRight4}">
+                        <TextBlock Style="{StaticResource TextPill}"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding TodayOrDateLabel}" />
+                    </Border>
+
+                    <!-- Time actually spent. Hidden until there is some, so a task nobody has
+                         worked on yet is not decorated with a zero. -->
+                    <Border Grid.Column="3"
+                            Style="{StaticResource PillLabel}"
+                            Margin="{StaticResource GapRight4}"
+                            ToolTip="{Binding DetailSummary}"
+                            Visibility="{Binding HasSpentTime, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Style="{StaticResource TextPill}"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding SpentText}" />
+                    </Border>
+
+                    <Button Grid.Column="4"
+                            Style="{StaticResource PillButton}"
+                            Margin="{StaticResource GapRight6}"
+                            Content="{Binding DurationLabel}"
+                            Command="{Binding OpenDurationPickerCommand}"
+                            AutomationProperties.Name="Change focus duration"
+                            ToolTip="Change focus duration" />
+
+                    <ctl:IconButton x:Name="PlannerPlayButton"
+                                    Grid.Column="5"
+                                    Style="{StaticResource PrimaryIconButton}"
+                                    Margin="{StaticResource GapRight4}"
+                                    Icon="Play"
+                                    IconVariant="Filled"
+                                    Command="{Binding StartFocusCommand}"
+                                    AutomationProperties.Name="Start focus on this task"
+                                    ToolTip="{Binding PlayTooltip}" />
+
+                    <ctl:IconButton Grid.Column="6"
+                                    Style="{StaticResource IconButtonCompact}"
+                                    Icon="Stop"
+                                    IconVariant="Filled"
+                                    Margin="{StaticResource GapRight4}"
+                                    Command="{Binding StopFocusCommand}"
+                                    AutomationProperties.Name="Stop this focus session"
+                                    ToolTip="Stop and keep the time recorded"
+                                    Visibility="{Binding IsActiveSession, Converter={StaticResource BoolToVis}}" />
+
+                    <!-- Secondary actions stay hidden until the row is hovered or keyboard focused. -->
+                    <ctl:IconButton x:Name="AddTimeButton"
+                                    Grid.Column="7"
+                                    Style="{StaticResource IconButtonCompact}"
+                                    Icon="Clock"
+                                    Opacity="0"
+                                    Command="{Binding AddTimeCommand}"
+                                    AutomationProperties.Name="Add time to this task"
+                                    ToolTip="Record time spent without a timer" />
+
+                    <ctl:IconButton x:Name="EditButton"
+                                    Grid.Column="8"
+                                    Style="{StaticResource IconButtonCompact}"
+                                    Icon="Edit"
+                                    Opacity="0"
+                                    Command="{Binding EditCommand}"
+                                    AutomationProperties.Name="Edit task"
+                                    ToolTip="Edit task" />
+
+                    <ctl:IconButton x:Name="DeleteButton"
+                                    Grid.Column="9"
+                                    Style="{StaticResource DestructiveIconButton}"
+                                    Icon="Delete"
+                                    Opacity="0"
+                                    Command="{Binding DeleteCommand}"
+                                    AutomationProperties.Name="Delete task"
+                                    ToolTip="Delete task" />
+                </Grid>
+            </Border>
+            <DataTemplate.Triggers>
+                <Trigger SourceName="RowBg" Property="IsMouseOver" Value="True">
+                    <Setter TargetName="RowBg" Property="Background" Value="{DynamicResource RowGlassHoverBrush}" />
+                    <Setter TargetName="RowBg" Property="BorderBrush" Value="{DynamicResource BorderVisibleBrush}" />
+                    <Setter TargetName="RowSheen" Property="Opacity" Value="1" />
+                    <Setter TargetName="AddTimeButton" Property="Opacity" Value="1" />
+                    <Setter TargetName="EditButton" Property="Opacity" Value="1" />
+                    <Setter TargetName="DeleteButton" Property="Opacity" Value="1" />
+                </Trigger>
+                <Trigger SourceName="AddTimeButton" Property="IsKeyboardFocused" Value="True">
+                    <Setter TargetName="AddTimeButton" Property="Opacity" Value="1" />
+                </Trigger>
+                <Trigger SourceName="EditButton" Property="IsKeyboardFocused" Value="True">
+                    <Setter TargetName="EditButton" Property="Opacity" Value="1" />
+                </Trigger>
+                <Trigger SourceName="DeleteButton" Property="IsKeyboardFocused" Value="True">
+                    <Setter TargetName="DeleteButton" Property="Opacity" Value="1" />
+                </Trigger>
+                <DataTrigger Binding="{Binding IsCompleted}" Value="True">
+                    <Setter TargetName="RowTitle" Property="Opacity" Value="0.42" />
+                    <Setter TargetName="RowTitle" Property="TextDecorations" Value="Strikethrough" />
+                    <Setter TargetName="RowNote" Property="Opacity" Value="0.42" />
+                    <Setter TargetName="RowTint" Property="Background" Value="{DynamicResource SuccessSoftBrush}" />
+                    <Setter TargetName="RowTint" Property="Opacity" Value="1" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding ShowsPause}" Value="True">
+                    <Setter TargetName="PlannerPlayButton" Property="Icon" Value="Pause" />
+                </DataTrigger>
+                <!-- The running session. A wash rather than a fill, and a thin accent edge:
+                     the row is marked, never repainted. -->
+                <DataTrigger Binding="{Binding IsActiveSession}" Value="True">
+                    <Setter TargetName="RowTint" Property="Opacity" Value="1" />
+                    <Setter TargetName="RowBg" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsFocused}" Value="True">
+                    <Setter TargetName="RowBg" Property="Background" Value="{DynamicResource RowGlassHoverBrush}" />
+                    <Setter TargetName="RowBg" Property="BorderBrush" Value="{DynamicResource RowFocusedBorderBrush}" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- ================================================== Calendar day -->
+        <!--
+            The date circle is a CircularBadge, so its size comes from one number and nothing
+            about the content can reach it. That is the whole fix: the old cell laid the circle
+            and the number out as siblings, so a two-digit date pushed the circle off centre and
+            "8" and "31" were visibly different shapes. Here they are the same badge with
+            different text in it, and the only correction anywhere is the half pixel the badge
+            applies to its own content because digits sit optically low inside a circle.
+        -->
+        <DataTemplate x:Key="CalendarDayTemplate" DataType="{x:Type vm:CalendarDayViewModel}">
+            <Button Command="{Binding SelectCommand}"
+                    AutomationProperties.Name="{Binding AccessibleName}"
+                    FocusVisualStyle="{StaticResource FocusRingCircleVisual}"
+                    Cursor="Hand">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Grid Background="{DynamicResource TransparentBrush}"
+                              Width="{StaticResource CalendarCellSize}"
+                              Height="{StaticResource CalendarCellSize}"
+                              SnapsToDevicePixels="True"
+                              UseLayoutRounding="True">
+                            <ctl:CircularBadge x:Name="Badge"
+                                               Diameter="{StaticResource CalendarBadgeSize}"
+                                               Content="{Binding DayNumber}"
+                                               Typography.NumeralAlignment="Tabular"
+                                               Foreground="{DynamicResource TextSecondaryBrush}" />
+
+                            <!-- A day that has tasks on it. Sits under the number inside the
+                                 same cell, so it cannot move the badge either. -->
+                            <Ellipse x:Name="Dot"
+                                     Width="3" Height="3"
+                                     Fill="{DynamicResource AccentBrush}"
+                                     VerticalAlignment="Bottom"
+                                     HorizontalAlignment="Center"
+                                     Margin="0,0,0,2"
+                                     Visibility="Collapsed" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsCurrentMonth}" Value="False">
+                                <Setter TargetName="Badge" Property="Foreground" Value="{DynamicResource TextDisabledBrush}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding HasTasks}" Value="True">
+                                <Setter TargetName="Dot" Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Badge" Property="Fill" Value="{DynamicResource SurfaceHoverBrush}" />
+                            </Trigger>
+                            <DataTrigger Binding="{Binding IsToday}" Value="True">
+                                <Setter TargetName="Badge" Property="Stroke" Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="Badge" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                <!-- The selected date is one of the few places a gradient is
+                                     allowed, and it stays readable because the ink on it is the
+                                     palette's own foreground rather than a guess. -->
+                                <Setter TargetName="Badge" Property="Fill" Value="{DynamicResource AccentGradientBrush}" />
+                                <Setter TargetName="Badge" Property="Stroke" Value="{DynamicResource TransparentBrush}" />
+                                <Setter TargetName="Badge" Property="Foreground" Value="{DynamicResource AccentForegroundBrush}" />
+                                <Setter TargetName="Badge" Property="FontWeight" Value="SemiBold" />
+                                <Setter TargetName="Dot" Property="Fill" Value="{DynamicResource AccentGlyphBrush}" />
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+        </DataTemplate>
+
+        <!-- ================================================== Expanded header actions -->
+        <!--
+            One group of buttons, used by all three expanded panels, in the order the design
+            calls for: Statistics, Settings, pin, back, close. Declared once so the planner and
+            the two destinations cannot drift apart, and so "selecting one closes the other" is
+            true by construction rather than by three copies agreeing.
+        -->
+        <ControlTemplate x:Key="PanelHeaderActions">
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center">
+                <ctl:IconButton Style="{StaticResource IconButtonCompact}"
+                                Icon="DataBarVertical"
+                                IsSelected="{Binding IsStatisticsVisible, Mode=OneWay}"
+                                Command="{Binding ToggleStatisticsCommand}"
+                                ToolTip="Statistics"
+                                AutomationProperties.Name="Statistics" />
+                <ctl:IconButton Style="{StaticResource IconButtonCompact}"
+                                Icon="Settings"
+                                IsSelected="{Binding IsSettingsVisible, Mode=OneWay}"
+                                Command="{Binding ToggleSettingsCommand}"
+                                ToolTip="Settings"
+                                AutomationProperties.Name="Settings" />
+                <ctl:IconToggleButton Style="{StaticResource ToggleIconButton}"
+                                      Icon="Pin"
+                                      CheckedIcon="Pin"
+                                      IsChecked="{Binding IsPinned, Mode=OneWay}"
+                                      Command="{Binding TogglePinCommand}"
+                                      ToolTip="Keep the panel open"
+                                      AutomationProperties.Name="Keep the panel open" />
+                <ctl:IconButton Style="{StaticResource IconButtonCompact}"
+                                Icon="ChevronUp"
+                                Command="{Binding BackCommand}"
+                                ToolTip="Back"
+                                AutomationProperties.Name="Back to the previous view" />
+                <ctl:IconButton Style="{StaticResource IconButtonCompact}"
+                                Icon="Dismiss"
+                                Command="{Binding CollapseCommand}"
+                                ToolTip="Close"
+                                AutomationProperties.Name="Close the Focus Notch panel" />
+            </StackPanel>
+        </ControlTemplate>
+
+        <!-- The heatmap is a drawn control, not a template: eighty-four elements in a
+             stretched grid could never be snapped to the pixel grid, and rebuilding them on
+             every refresh is what used to make the panel flash. See JourneyHeatmapControl. -->
+    </Window.Resources>
+
+    <!-- The root has no background, so every transparent region passes clicks straight through
+         to whatever is underneath. ContentHost's margin reserves room for the downward shadow
+         only: nothing is reserved above, so the notch meets the screen edge exactly. -->
+    <Grid x:Name="RootHost" Background="{x:Null}">
+        <!-- The card. Centred in a window whose width never changes, and given its animated
+             width as an ordinary layout property, so it is measured, arranged and composited in
+             the same frame as its own contents. Nothing here depends on when WPF is told about a
+             native resize, which is what keeps the centred header title still while the panel
+             unfolds. -->
+        <Grid x:Name="ContentHost"
+              HorizontalAlignment="Center"
+              Width="330"
+              Margin="0,0,0,16">
+
+            <StackPanel x:Name="ContentStack" VerticalAlignment="Top">
+
+                <!-- ============================================ Notch shell -->
+                <Grid x:Name="NotchGroup">
+
+                    <!-- Glow: a low-opacity copy of the shape, blurred and pushed down so the
+                         light gathers along the lower edge instead of haloing the top. -->
+                    <Border x:Name="NotchGlow"
+                            Margin="2,4,2,-3"
+                            Background="{DynamicResource EdgeIdleBrush}"
+                            CornerRadius="{StaticResource NotchCollapsedRadius}"
+                            Opacity="0"
+                            IsHitTestVisible="False">
+                        <Border.Effect>
+                            <BlurEffect Radius="14" KernelType="Gaussian" />
+                        </Border.Effect>
+                    </Border>
+
+                    <!-- The structural contour of the main tool, and the tool's single shadow.
+                         The ring is a filled border padded by one physical pixel with the glass
+                         body sitting inside that padding, which is what keeps the stroke exactly
+                         one pixel all the way round a rounded corner. It is never invisible: the
+                         accent ring above crossfades over it, so the tool always has an outline
+                         separating it from the desktop, in every state and on every wallpaper. -->
+                    <Border x:Name="NotchContour"
+                            Background="{DynamicResource GlassContourBrush}"
+                            CornerRadius="{StaticResource NotchCollapsedRadius}"
+                            Padding="{DynamicResource HairlineThickness}"
+                            Effect="{StaticResource PanelShadow}"
+                            SnapsToDevicePixels="True">
+
+                        <Border x:Name="NotchEdge"
+                                Background="{DynamicResource GlassBaseBrush}"
+                                CornerRadius="{StaticResource NotchCollapsedRadius}"
+                                SnapsToDevicePixels="True">
+
+                        <Grid x:Name="NotchSurface" Grid.IsSharedSizeScope="True">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="{StaticResource NotchHeaderRow}" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <!-- The glass stack, behind everything and hit-testable by nothing.
+                                 Tint, then the warm reflection of an active session, then the
+                                 specular sheen, then the inner edge that reads as thickness,
+                                 then two percent of grain. The whole group is clipped by
+                                 NotchSurface's own rounded outline, so none of it can reach a
+                                 corner. -->
+                            <Grid Grid.Row="0" Grid.RowSpan="2" IsHitTestVisible="False">
+                                <Rectangle Fill="{DynamicResource GlassTintBrush}" />
+                                <Rectangle x:Name="NotchReflection"
+                                           Fill="{DynamicResource AccentAmbientBrush}"
+                                           Opacity="0" />
+                                <Rectangle Fill="{DynamicResource SpecularHighlightBrush}" />
+                                <Border BorderBrush="{DynamicResource GlassInnerContourBrush}"
+                                        BorderThickness="{DynamicResource HairlineThickness}"
+                                        CornerRadius="{StaticResource NotchCollapsedRadius}"
+                                        SnapsToDevicePixels="True" />
+                                <Rectangle Fill="{DynamicResource GlassNoiseBrush}" />
+                            </Grid>
+
+                            <!-- Three-zone header -->
+                            <Grid x:Name="HeaderGrid"
+                                  Grid.Row="0"
+                                  Margin="10,0,10,0"
+                                  Background="{DynamicResource TransparentBrush}">
+                                <Grid.ColumnDefinitions>
+                                    <!-- Both side zones share one size group, so they are always
+                                         exactly as wide as each other and the centre column is
+                                         centred on the notch itself. Sharing rather than fixing
+                                         is what lets two more buttons appear when the panel opens
+                                         without either squeezing the title in the collapsed notch
+                                         or reserving room for them while they are not there.
+                                         The window is anchored to the centre of the monitor, so
+                                         the title holds one screen position while the panel
+                                         unfolds instead of sliding and re-centring every frame. -->
+                                    <ColumnDefinition Width="Auto" SharedSizeGroup="NotchHeaderSide" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" SharedSizeGroup="NotchHeaderSide" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0"
+                                            Orientation="Horizontal"
+                                            VerticalAlignment="Center">
+                                    <ctl:AppIcon Kind="Timer"
+                                                 IconSize="{StaticResource IconSizeTiny}"
+                                                 Foreground="{DynamicResource TextSecondaryBrush}"
+                                                 Margin="0,0,6,0" />
+                                    <TextBlock x:Name="TimerLabel"
+                                               Style="{StaticResource TextTimer}"
+                                               Text="{Binding TimerText}"
+                                               AutomationProperties.Name="Time remaining" />
+                                </StackPanel>
+
+                                <TextBlock x:Name="TitleLabel"
+                                           Grid.Column="1"
+                                           Style="{StaticResource TextRowTitle}"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           Text="{Binding ActiveTaskTitle}"
+                                           HorizontalAlignment="Center"
+                                           Margin="6,0,6,0" />
+
+                                <StackPanel Grid.Column="2"
+                                            Orientation="Horizontal"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Center">
+                                    <ctl:IconButton x:Name="PlayPauseButton"
+                                                    Style="{StaticResource TransportButton}"
+                                                    Icon="Play"
+                                                    IconVariant="Filled"
+                                                    Margin="0,0,3,0"
+                                                    Command="{Binding ToggleFocusCommand}"
+                                                    ToolTip="{Binding PlayPauseTooltip}"
+                                                    AutomationProperties.Name="Start or pause focus" />
+                                    <!-- Statistics and Settings are two destinations, two
+                                         commands, two tooltips and two selected states. Neither
+                                         is a way into the other. -->
+                                    <ctl:IconButton x:Name="StatsButton"
+                                                    Style="{StaticResource IconButtonCompact}"
+                                                    Icon="DataBarVertical"
+                                                    Margin="0,0,3,0"
+                                                    IsSelected="{Binding IsStatisticsVisible, Mode=OneWay}"
+                                                    Command="{Binding ToggleStatisticsCommand}"
+                                                    ToolTip="Statistics"
+                                                    AutomationProperties.Name="Statistics"
+                                                    Visibility="{Binding IsQuickVisible, Converter={StaticResource BoolToVis}}" />
+                                    <ctl:IconButton x:Name="SettingsButton"
+                                                    Style="{StaticResource IconButtonCompact}"
+                                                    Icon="Settings"
+                                                    Margin="0,0,3,0"
+                                                    IsSelected="{Binding IsSettingsVisible, Mode=OneWay}"
+                                                    Command="{Binding ToggleSettingsCommand}"
+                                                    ToolTip="Settings"
+                                                    AutomationProperties.Name="Settings"
+                                                    Visibility="{Binding IsQuickVisible, Converter={StaticResource BoolToVis}}" />
+                                    <ctl:IconButton x:Name="ChevronButton"
+                                                    Style="{StaticResource IconButtonCompact}"
+                                                    Icon="ChevronDown"
+                                                    Command="{Binding ExpandStepCommand}"
+                                                    ToolTip="{Binding ExpandTooltip}"
+                                                    AutomationProperties.Name="Expand or collapse Focus Notch" />
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Quick view -->
+                            <Grid x:Name="QuickContent"
+                                  Grid.Row="1"
+                                  Margin="10,2,10,10"
+                                  Opacity="0"
+                                  Visibility="Collapsed">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" MinWidth="240" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Task column -->
+                                <Grid Grid.Column="0">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="{StaticResource SectionHeaderRow}" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <Grid Grid.Row="0">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <ctl:AppIcon Kind="ClipboardTaskList"
+                                                         IconSize="{StaticResource IconSizeTiny}"
+                                                         Foreground="{DynamicResource TextMutedBrush}"
+                                                         Margin="0,0,6,0" />
+                                            <TextBlock Style="{StaticResource TextSection}" Text="To do" />
+                                        </StackPanel>
+                                        <TextBlock Style="{StaticResource TextMeta}"
+                                                   HorizontalAlignment="Right"
+                                                   VerticalAlignment="Center"
+                                                   Text="{Binding OpenCountText}" />
+                                    </Grid>
+
+                                    <ItemsControl Grid.Row="1"
+                                                  ItemsSource="{Binding QuickTasks}"
+                                                  ItemTemplate="{StaticResource QuickTaskTemplate}"
+                                                  Focusable="False" />
+
+                                    <TextBlock Grid.Row="1"
+                                               Style="{StaticResource TextMuted}"
+                                               Text="No tasks for today"
+                                               VerticalAlignment="Top"
+                                               Margin="2,6,0,6"
+                                               Visibility="{Binding HasQuickTasks, Converter={StaticResource InverseBoolToVis}}" />
+
+                                    <Button Grid.Row="2"
+                                            Style="{StaticResource RowActionButton}"
+                                            Command="{Binding BeginAddTaskCommand}"
+                                            AutomationProperties.Name="Add a task"
+                                            ToolTip="Add a task">
+                                        <StackPanel Orientation="Horizontal">
+                                            <ctl:AppIcon Kind="Add"
+                                                         IconSize="{StaticResource IconSizeTiny}"
+                                                         Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                         Margin="0,0,6,0" />
+                                            <TextBlock Text="Add a task"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+
+                                <Rectangle Grid.Column="1"
+                                           Width="1"
+                                           Fill="{DynamicResource BorderSubtleBrush}"
+                                           Margin="12,2,12,2"
+                                           SnapsToDevicePixels="True" />
+
+                                <!-- Journey streak column -->
+                                <Grid Grid.Column="2" VerticalAlignment="Top">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="{StaticResource SectionHeaderRow}" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <ctl:AppIcon Kind="Fire"
+                                                     Variant="Filled"
+                                                     IconSize="{StaticResource IconSizeTiny}"
+                                                     Foreground="{DynamicResource TextMutedBrush}"
+                                                     Margin="0,0,6,0" />
+                                        <TextBlock Style="{StaticResource TextSection}" Text="Journey streak" />
+                                        <TextBlock Style="{StaticResource TextSection}"
+                                                   Text="{Binding StreakText}"
+                                                   Foreground="{DynamicResource AccentBrush}"
+                                                   Margin="6,0,0,0"
+                                                   AutomationProperties.Name="Current streak in days" />
+                                    </StackPanel>
+
+                                    <ctl:JourneyHeatmapControl Grid.Row="1"
+                                                               Cells="{Binding HeatmapCells}"
+                                                               Today="{Binding HeatmapToday}"
+                                                               Level0Brush="{DynamicResource HeatBrush0}"
+                                                               Level1Brush="{DynamicResource HeatBrush1}"
+                                                               Level2Brush="{DynamicResource HeatBrush2}"
+                                                               Level3Brush="{DynamicResource HeatBrush3}"
+                                                               Level4Brush="{DynamicResource HeatBrush4}"
+                                                               TodayRingBrush="{DynamicResource HeatTodayRingBrush}"
+                                                               FocusRingBrush="{DynamicResource FocusRingBrush}"
+                                                               LabelBrush="{DynamicResource TextMutedBrush}"
+                                                               CellSize="9"
+                                                               Gap="3"
+                                                               HorizontalAlignment="Left"
+                                                               Margin="0,3,0,0" />
+                                </Grid>
+                            </Grid>
+
+                            <!--
+                                The progress light, pinned to the bottom of the notch.
+
+                                A recessed neutral track cut into the glass, the accent gradient
+                                filling it, rounded at both ends, and a single bright point at the
+                                leading edge where the light is brightest. The glow underneath is
+                                a fixed low-opacity copy, blurred once: it is never animated as a
+                                blur radius, and the only thing that moves is the width.
+                            -->
+                            <Grid x:Name="ProgressTrack"
+                                  Grid.Row="0"
+                                  Grid.RowSpan="2"
+                                  Height="{StaticResource ProgressTrackHeight}"
+                                  VerticalAlignment="Bottom"
+                                  IsHitTestVisible="False">
+                                <Rectangle Fill="{DynamicResource ProgressTrackBrush}"
+                                           RadiusX="{StaticResource ProgressTrackRadius}"
+                                           RadiusY="{StaticResource ProgressTrackRadius}" />
+
+                                <Grid x:Name="ProgressLight" HorizontalAlignment="Left">
+                                    <Grid.Width>
+                                        <MultiBinding Converter="{StaticResource ProgressWidth}">
+                                            <Binding Path="RemainingFraction" />
+                                            <Binding Path="ActualWidth" ElementName="ProgressTrack" />
+                                        </MultiBinding>
+                                    </Grid.Width>
+
+                                    <Rectangle x:Name="ProgressGlow"
+                                               Margin="0,-2,-2,-3"
+                                               Opacity="0.12"
+                                               Fill="{DynamicResource AccentGlowBrush}"
+                                               RadiusX="3" RadiusY="3">
+                                        <Rectangle.Effect>
+                                            <BlurEffect Radius="5" KernelType="Gaussian" />
+                                        </Rectangle.Effect>
+                                    </Rectangle>
+
+                                    <Rectangle x:Name="ProgressFill"
+                                               Fill="{DynamicResource RunningGradientBrush}"
+                                               RadiusX="{StaticResource ProgressTrackRadius}"
+                                               RadiusY="{StaticResource ProgressTrackRadius}" />
+
+                                    <!-- The leading point: two pixels of the lit stop, right at
+                                         the head of the fill. It is what makes the line read as
+                                         illuminated rather than merely coloured. -->
+                                    <Rectangle x:Name="ProgressHead"
+                                               Width="2"
+                                               HorizontalAlignment="Right"
+                                               Fill="{DynamicResource AccentHighlightBrush}"
+                                               RadiusX="1" RadiusY="1" />
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                        </Border>
+                    </Border>
+
+                    <!--
+                        The accent contour. Always present, never a separate outline: it is laid
+                        exactly over the structural ring and only its strength changes, so the
+                        crossfade between states is one opacity animation and the tool never
+                        loses its edge halfway through.
+
+                        Idle sits near four tenths, hovered or expanded near six, running at
+                        nearly full. Paused, error and completion temporarily borrow their own
+                        family here, then it returns to the colour the user chose.
+                    -->
+                    <Border x:Name="NotchEdgeAccent"
+                            BorderBrush="{DynamicResource AccentContourBrush}"
+                            BorderThickness="{DynamicResource HairlineThickness}"
+                            CornerRadius="{StaticResource NotchCollapsedRadius}"
+                            Opacity="0.4"
+                            IsHitTestVisible="False"
+                            SnapsToDevicePixels="True" />
+                </Grid>
+
+                <!-- ============================================ Planner card -->
+                <Grid x:Name="PlannerGroup" Margin="0,8,0,0" Opacity="0" Visibility="Collapsed">
+                    <!-- The planner is a top-level card of the same tool, so it is the same
+                         glass, the same contour and the same lighting as the notch above it,
+                         and its accent ring is driven from the same place. It carries one
+                         shadow, and the blurred copy that used to sit behind it is gone: two
+                         render-target passes for one edge is not a trade worth making. -->
+                    <ctl:LiquidGlassPanel x:Name="PlannerCard"
+                                          CornerRadius="{StaticResource CardRadius}"
+                                          ContourOpacity="0.4"
+                                          Elevation="Panel">
+
+                        <Grid>
+                            <Grid Margin="10">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="{StaticResource PanelHeaderRow}" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <!-- Planner header -->
+                                <Grid Grid.Row="0">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <ctl:AppIcon Kind="ClipboardTaskList"
+                                                     IconSize="{StaticResource IconSizeTiny}"
+                                                     Foreground="{DynamicResource TextMutedBrush}"
+                                                     Margin="0,0,6,0" />
+                                        <TextBlock Style="{StaticResource TextSection}" Text="Tasks" />
+                                        <TextBlock Style="{StaticResource TextMeta}"
+                                                   Text="{Binding OpenCountText}"
+                                                   Margin="8,0,0,0"
+                                                   VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <ContentControl Template="{StaticResource PanelHeaderActions}"
+                                                    HorizontalAlignment="Right"
+                                                    VerticalAlignment="Center"
+                                                    Focusable="False" />
+
+                                    <Rectangle Height="1"
+                                               VerticalAlignment="Bottom"
+                                               Fill="{DynamicResource BorderSubtleBrush}"
+                                               SnapsToDevicePixels="True" />
+                                </Grid>
+
+                                <!-- Planner body -->
+                                <Grid Grid.Row="1" Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="205" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Calendar -->
+                                    <Grid Grid.Column="0" VerticalAlignment="Top">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="24" />
+                                            <RowDefinition Height="16" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+
+                                        <Grid Grid.Row="0">
+                                            <ctl:IconButton HorizontalAlignment="Left"
+                                                            Style="{StaticResource IconButtonCompact}"
+                                                            Icon="ChevronLeft"
+                                                            Command="{Binding PreviousMonthCommand}"
+                                                            ToolTip="Previous month"
+                                                            AutomationProperties.Name="Previous month" />
+                                            <TextBlock Style="{StaticResource TextSecondary}"
+                                                       Text="{Binding CalendarMonthLabel}"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center" />
+                                            <ctl:IconButton HorizontalAlignment="Right"
+                                                            Style="{StaticResource IconButtonCompact}"
+                                                            Icon="ChevronRight"
+                                                            Command="{Binding NextMonthCommand}"
+                                                            ToolTip="Next month"
+                                                            AutomationProperties.Name="Next month" />
+                                        </Grid>
+
+                                        <UniformGrid Grid.Row="1" Rows="1" Columns="7">
+                                            <TextBlock Style="{StaticResource TextMeta}" Text="M" HorizontalAlignment="Center" />
+                                            <TextBlock Style="{StaticResource TextMeta}" Text="T" HorizontalAlignment="Center" />
+                                            <TextBlock Style="{StaticResource TextMeta}" Text="W" HorizontalAlignment="Center" />
+                                            <TextBlock Style="{StaticResource TextMeta}" Text="T" HorizontalAlignment="Center" />
+                                            <TextBlock Style="{StaticResource TextMeta}" Text="F" HorizontalAlignment="Center" />
+                                            <TextBlock Style="{StaticResource TextMeta}" Text="S" HorizontalAlignment="Center" />
+                                            <TextBlock Style="{StaticResource TextMeta}" Text="S" HorizontalAlignment="Center" />
+                                        </UniformGrid>
+
+                                        <ItemsControl Grid.Row="2"
+                                                      ItemsSource="{Binding CalendarDays}"
+                                                      ItemTemplate="{StaticResource CalendarDayTemplate}"
+                                                      Focusable="False"
+                                                      HorizontalAlignment="Center">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <UniformGrid Rows="6" Columns="7" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                        </ItemsControl>
+
+                                        <Button Grid.Row="3"
+                                                Style="{StaticResource GhostButton}"
+                                                Height="24"
+                                                Margin="0,8,0,0"
+                                                Content="Today"
+                                                Command="{Binding GoToTodayCommand}"
+                                                AutomationProperties.Name="Go to today" />
+                                    </Grid>
+
+                                    <Rectangle Grid.Column="1"
+                                               Width="1"
+                                               Fill="{DynamicResource BorderSubtleBrush}"
+                                               Margin="12,0,12,0"
+                                               SnapsToDevicePixels="True" />
+
+                                    <!-- Task list -->
+                                    <Grid Grid.Column="2">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="24" />
+                                            <RowDefinition Height="*" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+
+                                        <Grid Grid.Row="0">
+                                            <TextBlock Style="{StaticResource TextSection}"
+                                                       Text="{Binding SelectedDayLabel}"
+                                                       VerticalAlignment="Center" />
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                                <ToggleButton Style="{StaticResource FilterPill}"
+                                                              Content="Day"
+                                                              Margin="{StaticResource GapRight4}"
+                                                              IsChecked="{Binding IsDayFilter, Mode=OneWay}"
+                                                              Command="{Binding ShowDayFilterCommand}"
+                                                              AutomationProperties.Name="Show tasks for the selected day" />
+                                                <ToggleButton Style="{StaticResource FilterPill}"
+                                                              Content="{Binding UnscheduledCountText}"
+                                                              IsChecked="{Binding IsUnscheduledFilter, Mode=OneWay}"
+                                                              Command="{Binding ShowUnscheduledFilterCommand}"
+                                                              AutomationProperties.Name="Show unscheduled tasks" />
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <ScrollViewer Grid.Row="1"
+                                                      Margin="0,6,0,0"
+                                                      MinHeight="140"
+                                                      MaxHeight="150"
+                                                      Style="{StaticResource SlimScrollViewer}">
+                                            <ItemsControl x:Name="PlannerList"
+                                                          ItemsSource="{Binding PlannerTasks}"
+                                                          ItemTemplate="{StaticResource PlannerTaskTemplate}"
+                                                          Focusable="False" />
+                                        </ScrollViewer>
+
+                                        <TextBlock Grid.Row="1"
+                                                   Style="{StaticResource TextMuted}"
+                                                   Text="No tasks here yet"
+                                                   VerticalAlignment="Top"
+                                                   Margin="2,12,0,0"
+                                                   Visibility="{Binding HasPlannerTasks, Converter={StaticResource InverseBoolToVis}}" />
+
+                                        <!-- Inline add / edit -->
+                                        <Grid Grid.Row="2" Margin="0,6,0,0">
+                                            <Button Style="{StaticResource RowActionButton}"
+                                                    Command="{Binding BeginAddTaskCommand}"
+                                                    Visibility="{Binding IsAddingTask, Converter={StaticResource InverseBoolToVis}}"
+                                                    AutomationProperties.Name="Add a task"
+                                                    ToolTip="Add a task">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <ctl:AppIcon Kind="Add"
+                                                                 IconSize="{StaticResource IconSizeTiny}"
+                                                                 Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                                 Margin="0,0,6,0" />
+                                                    <TextBlock Text="Add a task"
+                                                               VerticalAlignment="Center"
+                                                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                                </StackPanel>
+                                            </Button>
+
+                                            <StackPanel Visibility="{Binding IsAddingTask, Converter={StaticResource BoolToVis}}">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBox x:Name="DraftTitleBox"
+                                                             Grid.Column="0"
+                                                             Style="{StaticResource NotchTextBox}"
+                                                             Tag="Task title"
+                                                             Text="{Binding DraftTitle, UpdateSourceTrigger=PropertyChanged}"
+                                                             Margin="{StaticResource GapRight6}"
+                                                             AutomationProperties.Name="Task title" />
+                                                    <Button Grid.Column="1"
+                                                            Style="{StaticResource PrimaryButton}"
+                                                            Height="30"
+                                                            Content="{Binding DraftActionLabel}"
+                                                            Command="{Binding ConfirmDraftCommand}"
+                                                            AutomationProperties.Name="Save task" />
+                                                </Grid>
+
+                                                <Grid Margin="0,4,0,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBox x:Name="DraftNoteBox"
+                                                             Grid.Column="0"
+                                                             Style="{StaticResource NotchTextBox}"
+                                                             Tag="Note (optional)"
+                                                             Text="{Binding DraftNote, UpdateSourceTrigger=PropertyChanged}"
+                                                             AcceptsReturn="True"
+                                                             Margin="{StaticResource GapRight6}"
+                                                             AutomationProperties.Name="Note, optional"
+                                                             ToolTip="Shift+Enter inserts a line break" />
+                                                    <Button Grid.Column="1"
+                                                            Style="{StaticResource GhostButton}"
+                                                            Height="30"
+                                                            Content="Cancel"
+                                                            Command="{Binding CancelDraftCommand}"
+                                                            AutomationProperties.Name="Cancel" />
+                                                </Grid>
+
+                                                <!-- Records work that is already done. The day
+                                                     selected in the calendar becomes the
+                                                     contribution date, so a missed day can be
+                                                     filled in and lights up its own square. -->
+                                                <ToggleButton Style="{StaticResource FilterPill}"
+                                                              HorizontalAlignment="Left"
+                                                              Margin="0,6,0,0"
+                                                              Content="Already completed"
+                                                              IsChecked="{Binding IsDraftCompleted, Mode=OneWay}"
+                                                              Command="{Binding ToggleDraftCompletedCommand}"
+                                                              ToolTip="Save this task as done, credited to the selected day"
+                                                              AutomationProperties.Name="Already completed" />
+
+                                                <!-- A title that is missing or too long is a
+                                                     warning, not a failure: nothing has gone
+                                                     wrong, something needs attention. So it
+                                                     wears the warning ramp rather than the red
+                                                     one, and it says so with a glyph as well as
+                                                     a colour. -->
+                                                <StackPanel Orientation="Horizontal"
+                                                            Margin="2,4,0,0"
+                                                            Visibility="{Binding HasDraftError, Converter={StaticResource BoolToVis}}">
+                                                    <Rectangle Width="2"
+                                                               RadiusX="1" RadiusY="1"
+                                                               Fill="{DynamicResource WarningGradientBrush}"
+                                                               Margin="{StaticResource GapRight6}"
+                                                               SnapsToDevicePixels="True" />
+                                                    <ctl:AppIcon Kind="Warning"
+                                                                 Variant="Filled"
+                                                                 IconSize="{StaticResource IconSizeTiny}"
+                                                                 Foreground="{DynamicResource WarningBrush}"
+                                                                 Margin="{StaticResource GapRight4}" />
+                                                    <TextBlock Style="{StaticResource TextMeta}"
+                                                               Foreground="{DynamicResource WarningBrush}"
+                                                               VerticalAlignment="Center"
+                                                               Text="{Binding DraftError}" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Grid>
+                                </Grid>
+
+                            </Grid>
+                        </Grid>
+                    </ctl:LiquidGlassPanel>
+                </Grid>
+
+                <!-- ============================================ Statistics card -->
+                <!-- A fourth level of the same card rather than a separate window, so it keeps
+                     the one geometry coordinator, the one hover model and the one theme, and
+                     stays visually attached to the notch it was opened from. -->
+                <Grid x:Name="StatisticsGroup" Margin="0,8,0,0" Opacity="0" Visibility="Collapsed">
+                    <ctl:LiquidGlassPanel x:Name="StatisticsCard"
+                                          CornerRadius="{StaticResource CardRadius}"
+                                          ContourOpacity="0.4"
+                                          Elevation="Panel">
+
+                        <Grid Margin="10">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="{StaticResource PanelHeaderRow}" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <!-- Header and range filter -->
+                            <Grid Grid.Row="0">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <ctl:AppIcon Kind="DataBarVertical"
+                                                 IconSize="{StaticResource IconSizeTiny}"
+                                                 Foreground="{DynamicResource TextMutedBrush}"
+                                                 Margin="0,0,6,0" />
+                                    <TextBlock Style="{StaticResource TextSection}" Text="Statistics" />
+                                </StackPanel>
+
+                                <StackPanel Orientation="Horizontal"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center">
+                                    <ToggleButton Style="{StaticResource FilterPill}"
+                                                  Content="Today"
+                                                  Margin="{StaticResource GapRight4}"
+                                                  IsChecked="{Binding Statistics.IsToday, Mode=OneWay}"
+                                                  Command="{Binding Statistics.SelectTodayCommand}"
+                                                  AutomationProperties.Name="Show today" />
+                                    <ToggleButton Style="{StaticResource FilterPill}"
+                                                  Content="7 days"
+                                                  Margin="{StaticResource GapRight4}"
+                                                  IsChecked="{Binding Statistics.IsLast7, Mode=OneWay}"
+                                                  Command="{Binding Statistics.SelectLast7Command}"
+                                                  AutomationProperties.Name="Show the last seven days" />
+                                    <ToggleButton Style="{StaticResource FilterPill}"
+                                                  Content="30 days"
+                                                  Margin="{StaticResource GapRight4}"
+                                                  IsChecked="{Binding Statistics.IsLast30, Mode=OneWay}"
+                                                  Command="{Binding Statistics.SelectLast30Command}"
+                                                  AutomationProperties.Name="Show the last thirty days" />
+                                    <ToggleButton Style="{StaticResource FilterPill}"
+                                                  Content="All time"
+                                                  IsChecked="{Binding Statistics.IsAllTime, Mode=OneWay}"
+                                                  Command="{Binding Statistics.SelectAllTimeCommand}"
+                                                  AutomationProperties.Name="Show all time" />
+                                </StackPanel>
+
+                                <ContentControl Template="{StaticResource PanelHeaderActions}"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Center"
+                                                Focusable="False" />
+
+                                <Rectangle Height="1"
+                                           VerticalAlignment="Bottom"
+                                           Fill="{DynamicResource BorderSubtleBrush}"
+                                           SnapsToDevicePixels="True" />
+                            </Grid>
+
+                            <StackPanel Grid.Row="1" Margin="0,10,0,0">
+
+                                <!-- Summary. Seven fixed tiles, so loading data changes the
+                                     numbers and never the height. -->
+                                <UniformGrid Rows="1" Columns="7">
+                                    <StackPanel Margin="{StaticResource GapRight8}">
+                                        <TextBlock Style="{StaticResource TextSection}"
+                                                   Text="{Binding Statistics.TotalFocusText}"
+                                                   ToolTip="{Binding Statistics.ManualText}" />
+                                        <TextBlock Style="{StaticResource TextMeta}" Text="focused" />
+                                    </StackPanel>
+                                    <StackPanel Margin="{StaticResource GapRight8}">
+                                        <TextBlock Style="{StaticResource TextSection}"
+                                                   Text="{Binding Statistics.TasksCompletedText}" />
+                                        <TextBlock Style="{StaticResource TextMeta}" Text="tasks done" />
+                                    </StackPanel>
+                                    <StackPanel Margin="{StaticResource GapRight8}">
+                                        <TextBlock Style="{StaticResource TextSection}"
+                                                   Text="{Binding Statistics.SessionsText}" />
+                                        <TextBlock Style="{StaticResource TextMeta}" Text="sessions" />
+                                    </StackPanel>
+                                    <StackPanel Margin="{StaticResource GapRight8}">
+                                        <TextBlock Style="{StaticResource TextSection}"
+                                                   Text="{Binding Statistics.AverageSessionText}" />
+                                        <TextBlock Style="{StaticResource TextMeta}" Text="avg session" />
+                                    </StackPanel>
+                                    <StackPanel Margin="{StaticResource GapRight8}">
+                                        <TextBlock Style="{StaticResource TextSection}"
+                                                   Foreground="{DynamicResource AccentBrush}"
+                                                   Text="{Binding Statistics.CurrentStreakText}" />
+                                        <TextBlock Style="{StaticResource TextMeta}" Text="streak" />
+                                    </StackPanel>
+                                    <StackPanel Margin="{StaticResource GapRight8}">
+                                        <TextBlock Style="{StaticResource TextSection}"
+                                                   Text="{Binding Statistics.LongestStreakText}" />
+                                        <TextBlock Style="{StaticResource TextMeta}" Text="longest" />
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource TextSection}"
+                                                   Text="{Binding Statistics.CompletionRateText}"
+                                                   ToolTip="{Binding Statistics.CompletionRateDetail}" />
+                                        <TextBlock Style="{StaticResource TextMeta}" Text="completed" />
+                                    </StackPanel>
+                                </UniformGrid>
+
+                                <!-- How the range was actually shaped. Six more fixed tiles: the
+                                     first row says how much, this one says how it was spread.
+                                     Each carries its working in a tooltip rather than on screen,
+                                     because a number with its own sentence under it stops being
+                                     glanceable. -->
+                                <UniformGrid Rows="1" Columns="6" Margin="0,10,0,0">
+                                    <StackPanel Margin="{StaticResource GapRight8}">
+                                        <TextBlock Style="{StaticResource TextSection}"
+                                                   Text="{Binding Statistics.AverageTaskText}"
+                                                   ToolTip="{Binding Statistics.AverageTaskDetail}" />
+                                        <TextBlock Style="{StaticResource TextMeta}" Text="avg per task" />
+                                    </StackPanel>
+                                    <StackPanel Margin="{StaticResource GapRight8}">
+                                        <TextBlock Style="{StaticResource TextSection}"
+                                                   Text="{Binding Statistics.AverageDayText}"
+                                                   ToolTip="{Binding Statistics.AverageDayDetail}" />
+                                        <TextBlock Style="{StaticResource TextMeta}" Text="avg per day" />
+                                    </StackPanel>
+                                    <StackPanel Margin="{StaticResource GapRight8}">
+                                        <TextBlock Style="{StaticResource TextSection}"
+                                                   Text="{Binding Statistics.BestDayText}"
+                                                   ToolTip="{Binding Statistics.BestDayDetail}" />
+                                        <TextBlock Style="{StaticResource TextMeta}"
+                                                   Text="{Binding Statistics.BestDayDetail}"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                    <StackPanel Margin="{StaticResource GapRight8}">
+                                        <TextBlock Style="{StaticResource TextSection}"
+                                                   Text="{Binding Statistics.BestWeekdayText}"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   ToolTip="{Binding Statistics.BestWeekdayDetail}" />
+                                        <TextBlock Style="{StaticResource TextMeta}" Text="best weekday" />
+                                    </StackPanel>
+                                    <StackPanel Margin="{StaticResource GapRight8}">
+                                        <TextBlock Style="{StaticResource TextSection}"
+                                                   Text="{Binding Statistics.MostTasksText}"
+                                                   ToolTip="{Binding Statistics.MostTasksDetail}" />
+                                        <TextBlock Style="{StaticResource TextMeta}" Text="most in a day" />
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource TextSection}"
+                                                   Text="{Binding Statistics.LongestSessionText}" />
+                                        <TextBlock Style="{StaticResource TextMeta}" Text="longest run" />
+                                    </StackPanel>
+                                </UniformGrid>
+
+                                <!-- Activity chart. Fixed height, so loading cannot resize the panel. -->
+                                <!-- The bars are one of the few places a gradient belongs: they
+                                     are the active measurement the panel is about, and the brush
+                                     maps per bar, so each one is lit the same way. -->
+                                <ctl:ActivityChartControl Buckets="{Binding Statistics.Chart}"
+                                                          BarBrush="{DynamicResource AccentGradientBrush}"
+                                                          ManualBarBrush="{DynamicResource ChartBarManualBrush}"
+                                                          HoverBarBrush="{DynamicResource AccentHoverBrush}"
+                                                          GridBrush="{DynamicResource ChartGridBrush}"
+                                                          EmptyBrush="{DynamicResource ChartEmptyBrush}"
+                                                          LabelBrush="{DynamicResource TextMutedBrush}"
+                                                          Height="86"
+                                                          Margin="0,10,0,0"
+                                                          AutomationProperties.Name="Daily focus time" />
+
+                                <Grid Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Top tasks -->
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Style="{StaticResource TextSection}"
+                                                   Text="Top tasks"
+                                                   Margin="{StaticResource GapBelow4}" />
+
+                                        <ItemsControl ItemsSource="{Binding Statistics.TopTasks}" Focusable="False">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type vm:TopTaskViewModel}">
+                                                    <Grid Height="26">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" MinWidth="60" />
+                                                            <ColumnDefinition Width="64" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <TextBlock Grid.Column="0"
+                                                                   Style="{StaticResource TextRowTitle}"
+                                                                   Text="{Binding Title}"
+                                                                   ToolTip="{Binding Title}"
+                                                                   Margin="0,0,8,0" />
+
+                                                        <!-- A plain proportion bar. Solid fill,
+                                                             flat track, no gradient. -->
+                                                        <Grid Grid.Column="1"
+                                                              Height="4"
+                                                              VerticalAlignment="Center"
+                                                              Margin="0,0,8,0"
+                                                              x:Name="ShareTrack">
+                                                            <Rectangle Fill="{DynamicResource ChartEmptyBrush}"
+                                                                       RadiusX="2" RadiusY="2" />
+                                                            <Rectangle Fill="{DynamicResource ChartBarBrush}"
+                                                                       RadiusX="2" RadiusY="2"
+                                                                       HorizontalAlignment="Left">
+                                                                <Rectangle.Width>
+                                                                    <MultiBinding Converter="{StaticResource PercentWidth}">
+                                                                        <Binding Path="SharePercent" />
+                                                                        <Binding Path="ActualWidth" ElementName="ShareTrack" />
+                                                                    </MultiBinding>
+                                                                </Rectangle.Width>
+                                                            </Rectangle>
+                                                        </Grid>
+
+                                                        <TextBlock Grid.Column="2"
+                                                                   Style="{StaticResource TextMeta}"
+                                                                   Text="{Binding TimeText}"
+                                                                   MinWidth="52"
+                                                                   TextAlignment="Right"
+                                                                   ToolTip="{Binding ManualText}" />
+
+                                                        <Border Grid.Column="3"
+                                                                Style="{StaticResource PillLabel}"
+                                                                Margin="6,0,0,0">
+                                                            <TextBlock Style="{StaticResource TextPill}"
+                                                                       VerticalAlignment="Center"
+                                                                       Text="{Binding StatusText}" />
+                                                        </Border>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+
+                                        <TextBlock Style="{StaticResource TextMuted}"
+                                                   Text="Nothing recorded in this range yet"
+                                                   Margin="0,4,0,0"
+                                                   Visibility="{Binding Statistics.HasTopTasks, Converter={StaticResource InverseBoolToVis}}" />
+                                    </StackPanel>
+
+                                    <Rectangle Grid.Column="1"
+                                               Width="1"
+                                               Fill="{DynamicResource BorderSubtleBrush}"
+                                               Margin="12,0,12,0"
+                                               SnapsToDevicePixels="True" />
+
+                                    <!-- The same heatmap control, drawn larger, with month
+                                         labels and the Less-to-More legend. -->
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Style="{StaticResource TextSection}"
+                                                   Text="Journey"
+                                                   Margin="{StaticResource GapBelow4}" />
+
+                                        <ctl:JourneyHeatmapControl Cells="{Binding HeatmapCells}"
+                                                                   Today="{Binding HeatmapToday}"
+                                                                   Level0Brush="{DynamicResource HeatBrush0}"
+                                                                   Level1Brush="{DynamicResource HeatBrush1}"
+                                                                   Level2Brush="{DynamicResource HeatBrush2}"
+                                                                   Level3Brush="{DynamicResource HeatBrush3}"
+                                                                   Level4Brush="{DynamicResource HeatBrush4}"
+                                                                   TodayRingBrush="{DynamicResource HeatTodayRingBrush}"
+                                                                   FocusRingBrush="{DynamicResource FocusRingBrush}"
+                                                                   LabelBrush="{DynamicResource TextMutedBrush}"
+                                                                   CellSize="11"
+                                                                   Gap="3"
+                                                                   ShowMonthLabels="True"
+                                                                   HorizontalAlignment="Left" />
+
+                                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                            <TextBlock Style="{StaticResource TextMeta}"
+                                                       Text="Less"
+                                                       Margin="0,0,4,0" />
+                                            <Rectangle Width="9" Height="9" RadiusX="2" RadiusY="2"
+                                                       Margin="0,0,3,0" SnapsToDevicePixels="True"
+                                                       Fill="{DynamicResource HeatBrush0}" />
+                                            <Rectangle Width="9" Height="9" RadiusX="2" RadiusY="2"
+                                                       Margin="0,0,3,0" SnapsToDevicePixels="True"
+                                                       Fill="{DynamicResource HeatBrush1}" />
+                                            <Rectangle Width="9" Height="9" RadiusX="2" RadiusY="2"
+                                                       Margin="0,0,3,0" SnapsToDevicePixels="True"
+                                                       Fill="{DynamicResource HeatBrush2}" />
+                                            <Rectangle Width="9" Height="9" RadiusX="2" RadiusY="2"
+                                                       Margin="0,0,3,0" SnapsToDevicePixels="True"
+                                                       Fill="{DynamicResource HeatBrush3}" />
+                                            <Rectangle Width="9" Height="9" RadiusX="2" RadiusY="2"
+                                                       Margin="0,0,4,0" SnapsToDevicePixels="True"
+                                                       Fill="{DynamicResource HeatBrush4}" />
+                                            <TextBlock Style="{StaticResource TextMeta}" Text="More" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Grid>
+
+                            </StackPanel>
+                        </Grid>
+                    </ctl:LiquidGlassPanel>
+                </Grid>
+
+                <!-- ============================================ Settings card -->
+                <!--
+                    A destination of its own, at the same level as Statistics rather than a strip
+                    inside it. Four sections, each one line of controls deep, so the whole thing
+                    stays a notch panel and never becomes a preferences window: everything here is
+                    a thing you change and immediately see, not a form you fill in and submit.
+                -->
+                <Grid x:Name="SettingsGroup" Margin="0,8,0,0" Opacity="0" Visibility="Collapsed">
+                    <ctl:LiquidGlassPanel x:Name="SettingsCard"
+                                          CornerRadius="{StaticResource CardRadius}"
+                                          ContourOpacity="0.4"
+                                          Elevation="Panel">
+
+                        <Grid Margin="10">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="{StaticResource PanelHeaderRow}" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <ctl:AppIcon Kind="Settings"
+                                                 IconSize="{StaticResource IconSizeTiny}"
+                                                 Foreground="{DynamicResource TextMutedBrush}"
+                                                 Margin="0,0,6,0" />
+                                    <TextBlock Style="{StaticResource TextSection}" Text="Settings" />
+                                </StackPanel>
+
+                                <ContentControl Template="{StaticResource PanelHeaderActions}"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Center"
+                                                Focusable="False" />
+
+                                <Rectangle Height="1"
+                                           VerticalAlignment="Bottom"
+                                           Fill="{DynamicResource BorderSubtleBrush}"
+                                           SnapsToDevicePixels="True" />
+                            </Grid>
+
+                            <Grid Grid.Row="1" Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- ================================ Appearance -->
+                                <StackPanel Grid.Column="0">
+                                    <StackPanel Orientation="Horizontal" Margin="{StaticResource GapBelow6}">
+                                        <ctl:AppIcon Kind="PaintBrush"
+                                                     IconSize="{StaticResource IconSizeTiny}"
+                                                     Foreground="{DynamicResource TextMutedBrush}"
+                                                     Margin="0,0,6,0" />
+                                        <TextBlock Style="{StaticResource TextSection}" Text="Appearance" />
+                                    </StackPanel>
+
+                                    <StackPanel Orientation="Horizontal" Margin="{StaticResource GapBelow8}">
+                                        <ctl:AppIcon Kind="Desktop"
+                                                     IconSize="{StaticResource IconSizeTiny}"
+                                                     Foreground="{DynamicResource TextMutedBrush}"
+                                                     Margin="0,0,6,0" />
+                                        <ToggleButton Style="{StaticResource FilterPill}"
+                                                      Content="System"
+                                                      Margin="{StaticResource GapRight4}"
+                                                      IsChecked="{Binding IsSystemTheme, Mode=OneWay}"
+                                                      Command="{Binding UseSystemThemeCommand}"
+                                                      ToolTip="Follow the Windows theme"
+                                                      AutomationProperties.Name="Follow the Windows theme" />
+                                        <ToggleButton Style="{StaticResource FilterPill}"
+                                                      Content="Light"
+                                                      Margin="{StaticResource GapRight4}"
+                                                      IsChecked="{Binding IsLightTheme, Mode=OneWay}"
+                                                      Command="{Binding UseLightThemeCommand}"
+                                                      ToolTip="Use the light theme"
+                                                      AutomationProperties.Name="Use the light theme" />
+                                        <ToggleButton Style="{StaticResource FilterPill}"
+                                                      Content="Dark"
+                                                      IsChecked="{Binding IsDarkTheme, Mode=OneWay}"
+                                                      Command="{Binding UseDarkThemeCommand}"
+                                                      ToolTip="Use the dark theme"
+                                                      AutomationProperties.Name="Use the dark theme" />
+                                    </StackPanel>
+
+                                    <!-- What the panels are made of. Three materials, and the
+                                         difference between them is how much of the desktop is
+                                         allowed through - which is a judgement about what the
+                                         user keeps behind the window, so it is theirs to make
+                                         rather than a constant in a palette. -->
+                                    <StackPanel Orientation="Horizontal" Margin="{StaticResource GapBelow8}">
+                                        <ctl:AppIcon Kind="Sparkle"
+                                                     IconSize="{StaticResource IconSizeTiny}"
+                                                     Foreground="{DynamicResource TextMutedBrush}"
+                                                     Margin="0,0,6,0" />
+                                        <ToggleButton Style="{StaticResource FilterPill}"
+                                                      Content="Solid"
+                                                      Margin="{StaticResource GapRight4}"
+                                                      IsChecked="{Binding IsSolidGlass, Mode=OneWay}"
+                                                      Command="{Binding UseSolidGlassCommand}"
+                                                      ToolTip="Dense glass. Readable over anything."
+                                                      AutomationProperties.Name="Solid glass" />
+                                        <ToggleButton Style="{StaticResource FilterPill}"
+                                                      Content="Frosted"
+                                                      Margin="{StaticResource GapRight4}"
+                                                      IsChecked="{Binding IsFrostedGlass, Mode=OneWay}"
+                                                      Command="{Binding UseFrostedGlassCommand}"
+                                                      ToolTip="A pale wash and a soft rim. More of the desktop comes through."
+                                                      AutomationProperties.Name="Frosted glass" />
+                                        <ToggleButton Style="{StaticResource FilterPill}"
+                                                      Content="Liquid"
+                                                      IsChecked="{Binding IsLiquidGlass, Mode=OneWay}"
+                                                      Command="{Binding UseLiquidGlassCommand}"
+                                                      ToolTip="Almost clear, with a halo and a ripple. Best over a plain desktop."
+                                                      AutomationProperties.Name="Liquid glass" />
+                                    </StackPanel>
+
+                                    <!-- Windows can refuse to blur, and when it does the two
+                                         translucent materials are only thinner glass. Better to
+                                         say so than to let a panel look broken for obeying a
+                                         preference. -->
+                                    <TextBlock Style="{StaticResource TextMeta}"
+                                               Margin="{StaticResource GapBelow8}"
+                                               TextWrapping="Wrap"
+                                               Text="Windows transparency effects are off, so there is nothing to blur behind the glass. Turn them on in Settings, Personalisation, Colours."
+                                               Visibility="{Binding GlassBlurUnavailable, Converter={StaticResource BoolToVis}}" />
+
+                                    <!-- Six families. Pressing one changes every accent-driven
+                                         colour in the interface at once, and stores nothing but
+                                         its identifier. -->
+                                    <ItemsControl ItemsSource="{Binding Accents}"
+                                                  Focusable="False"
+                                                  Margin="{StaticResource GapBelow8}"
+                                                  AutomationProperties.Name="Accent family">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Orientation="Horizontal" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type vm:AccentSwatchViewModel}">
+                                                <Button Command="{Binding SelectCommand}"
+                                                        Cursor="Hand"
+                                                        ToolTip="{Binding DisplayName}"
+                                                        AutomationProperties.Name="{Binding AccessibleName}"
+                                                        FocusVisualStyle="{StaticResource FocusRingCircleVisual}">
+                                                    <Button.Template>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Grid Width="30" Height="30"
+                                                                  Background="{DynamicResource TransparentBrush}"
+                                                                  SnapsToDevicePixels="True"
+                                                                  UseLayoutRounding="True">
+                                                                <!-- The ring is drawn in the text
+                                                                     colour rather than the accent:
+                                                                     an orange ring around an orange
+                                                                     swatch is not a selection mark,
+                                                                     and this one reads on every
+                                                                     family in both themes. -->
+                                                                <!-- The selection ring, three
+                                                                     pixels clear of the swatch.
+                                                                     It is the accent's own solid
+                                                                     tone rather than its highlight
+                                                                     stop: a pale ring is invisible
+                                                                     on a light panel, and the gap
+                                                                     is what makes a same-family
+                                                                     ring read as a selection
+                                                                     rather than as part of the
+                                                                     swatch. -->
+                                                                <Ellipse x:Name="SelectionRing"
+                                                                         Width="28" Height="28"
+                                                                         HorizontalAlignment="Center"
+                                                                         VerticalAlignment="Center"
+                                                                         Stroke="{DynamicResource AccentBrush}"
+                                                                         StrokeThickness="1.5"
+                                                                         Opacity="0" />
+                                                                <!-- The swatch runs the palette's
+                                                                     one base colour through the
+                                                                     same engine the theme does,
+                                                                     so the circle is literally
+                                                                     the gradient pressing it
+                                                                     produces. -->
+                                                                <ctl:CircularBadge x:Name="Swatch"
+                                                                                   Diameter="22"
+                                                                                   HorizontalAlignment="Center"
+                                                                                   VerticalAlignment="Center"
+                                                                                   Fill="{Binding BaseColour, Converter={StaticResource AccentSwatch}}" />
+                                                                <Ellipse x:Name="SwatchGloss"
+                                                                         Width="22" Height="22"
+                                                                         HorizontalAlignment="Center"
+                                                                         VerticalAlignment="Center"
+                                                                         Fill="{StaticResource GlossOverlayBrush}"
+                                                                         IsHitTestVisible="False" />
+                                                                <ctl:AppIcon x:Name="Tick"
+                                                                             Kind="Checkmark"
+                                                                             IconSize="10"
+                                                                             Foreground="{DynamicResource AccentGlyphBrush}"
+                                                                             Opacity="0" />
+
+                                                                <!-- The seventh swatch is not
+                                                                     a family, it is a door, and
+                                                                     it has to say so before it
+                                                                     is pressed. -->
+                                                                <ctl:AppIcon x:Name="Mixer"
+                                                                             Kind="Color"
+                                                                             IconSize="11"
+                                                                             Foreground="{DynamicResource AccentGlyphBrush}"
+                                                                             Opacity="0" />
+                                                            </Grid>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter TargetName="SelectionRing" Property="Opacity" Value="0.5" />
+                                                                </Trigger>
+                                                                <!-- Selection is a ring and a
+                                                                     checkmark, not colour alone. -->
+                                                                <DataTrigger Binding="{Binding IsCustom}" Value="True">
+                                                                    <Setter TargetName="Mixer" Property="Opacity" Value="1" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                    <Setter TargetName="SelectionRing" Property="Opacity" Value="1" />
+                                                                    <Setter TargetName="Tick" Property="Opacity" Value="1" />
+                                                                    <Setter TargetName="Mixer" Property="Opacity" Value="0" />
+                                                                </DataTrigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Button.Template>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <!--
+                                        The custom colour.
+
+                                        Three strips, and each one is drawn in the colour space
+                                        the accent engine actually derives in, so the sweep under
+                                        the thumb is the result rather than an approximation of
+                                        it. Only the base colour is chosen here; the five gradient
+                                        stops, the contour, the halo, the tint and the readable
+                                        ink are all still generated from it by exactly the same
+                                        rule the six named families go through, which is why a
+                                        colour mixed here is not a second-class accent.
+
+                                        Every reachable position is legal. The brightness strip
+                                        spans exactly the band the engine accepts, and colour
+                                        past what the display can show is mapped back down by
+                                        chroma alone, so the hue you picked is the hue you get.
+                                    -->
+                                    <StackPanel Visibility="{Binding IsCustomAccentOpen, Converter={StaticResource BoolToVis}}"
+                                                Margin="{StaticResource GapBelow8}">
+                                        <Grid Margin="0,0,0,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="64" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+
+                                            <TextBlock Grid.Row="0" Grid.Column="0"
+                                                       Style="{StaticResource TextMeta}"
+                                                       Text="Colour"
+                                                       VerticalAlignment="Center" />
+                                            <ctl:OklchStrip Grid.Row="0" Grid.Column="1"
+                                                            Axis="Hue"
+                                                            Height="16"
+                                                            Margin="0,0,0,6"
+                                                            Lightness="{Binding CustomLightness, Mode=OneWay}"
+                                                            Chroma="{Binding CustomChroma, Mode=OneWay}"
+                                                            Hue="{Binding CustomHue, Mode=TwoWay}"
+                                                            ContourBrush="{DynamicResource BorderSubtleBrush}"
+                                                            CommitCommand="{Binding CommitCustomAccentCommand}"
+                                                            ToolTip="Which colour it is"
+                                                            AutomationProperties.Name="Accent colour" />
+
+                                            <TextBlock Grid.Row="1" Grid.Column="0"
+                                                       Style="{StaticResource TextMeta}"
+                                                       Text="Intensity"
+                                                       VerticalAlignment="Center" />
+                                            <ctl:OklchStrip Grid.Row="1" Grid.Column="1"
+                                                            Axis="Chroma"
+                                                            Height="16"
+                                                            Margin="0,0,0,6"
+                                                            Lightness="{Binding CustomLightness, Mode=OneWay}"
+                                                            Chroma="{Binding CustomChroma, Mode=TwoWay}"
+                                                            Hue="{Binding CustomHue, Mode=OneWay}"
+                                                            ContourBrush="{DynamicResource BorderSubtleBrush}"
+                                                            CommitCommand="{Binding CommitCustomAccentCommand}"
+                                                            ToolTip="How much colour there is in it"
+                                                            AutomationProperties.Name="Accent intensity" />
+
+                                            <TextBlock Grid.Row="2" Grid.Column="0"
+                                                       Style="{StaticResource TextMeta}"
+                                                       Text="Brightness"
+                                                       VerticalAlignment="Center" />
+                                            <ctl:OklchStrip Grid.Row="2" Grid.Column="1"
+                                                            Axis="Lightness"
+                                                            Height="16"
+                                                            Lightness="{Binding CustomLightness, Mode=TwoWay}"
+                                                            Chroma="{Binding CustomChroma, Mode=OneWay}"
+                                                            Hue="{Binding CustomHue, Mode=OneWay}"
+                                                            ContourBrush="{DynamicResource BorderSubtleBrush}"
+                                                            CommitCommand="{Binding CommitCustomAccentCommand}"
+                                                            ToolTip="How light or deep it is"
+                                                            AutomationProperties.Name="Accent brightness" />
+                                        </Grid>
+
+                                        <!-- And the same colour as text, both ways: a name, three
+                                             digits or six all work, and anything that is not a
+                                             colour is simply not applied. -->
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBox Style="{StaticResource NotchTextBox}"
+                                                     Width="104"
+                                                     Height="24"
+                                                     Margin="0,0,4,0"
+                                                     Text="{Binding CustomText, UpdateSourceTrigger=PropertyChanged}"
+                                                     ToolTip="A name or a hex value: red, #E5484D, E54"
+                                                     AutomationProperties.Name="Custom colour value">
+                                                <TextBox.InputBindings>
+                                                    <KeyBinding Key="Enter" Command="{Binding ApplyCustomTextCommand}" />
+                                                </TextBox.InputBindings>
+                                            </TextBox>
+                                            <Button Style="{StaticResource GhostButton}"
+                                                    Height="24"
+                                                    MinWidth="0"
+                                                    Margin="0,0,4,0"
+                                                    Content="Apply"
+                                                    Command="{Binding ApplyCustomTextCommand}"
+                                                    ToolTip="Use the colour written in the box"
+                                                    AutomationProperties.Name="Apply the written colour" />
+                                            <Button Style="{StaticResource GhostButton}"
+                                                    Height="24"
+                                                    MinWidth="0"
+                                                    Content="Done"
+                                                    Command="{Binding CloseCustomAccentCommand}"
+                                                    ToolTip="Close the colour editor"
+                                                    AutomationProperties.Name="Close the colour editor" />
+                                        </StackPanel>
+                                    </StackPanel>
+
+                                    <!-- The active gradient exactly as the interface will use it. -->
+                                    <Grid Height="26" Margin="{StaticResource GapBelow8}">
+                                        <Border CornerRadius="{StaticResource ControlRadius}"
+                                                Background="{DynamicResource AccentGradientBrush}"
+                                                SnapsToDevicePixels="True" />
+                                        <!-- The gloss and the localised reflection, exactly as
+                                             the primary control wears them, so the preview shows
+                                             the material rather than only the colour. -->
+                                        <Border CornerRadius="{StaticResource ControlRadius}"
+                                                Background="{StaticResource GlossOverlayBrush}"
+                                                SnapsToDevicePixels="True" />
+                                        <Border CornerRadius="{StaticResource ControlRadius}"
+                                                Background="{DynamicResource SpecularHighlightBrush}"
+                                                SnapsToDevicePixels="True" />
+                                        <!-- The name sits at the lit end of the ramp. It used
+                                             to be pushed to the shadowed end, because the ink was
+                                             always white and white is not readable on the light
+                                             half of a pale family; now the engine measures which
+                                             of the two inks reads and hands back that one, so the
+                                             label belongs where the contrast is best, which for a
+                                             dark ink is the highlight. -->
+                                        <TextBlock Style="{StaticResource TextPill}"
+                                                   Foreground="{DynamicResource AccentForegroundBrush}"
+                                                   FontWeight="SemiBold"
+                                                   VerticalAlignment="Center"
+                                                   HorizontalAlignment="Left"
+                                                   Margin="10,0,0,0"
+                                                   Text="{Binding AccentName}" />
+                                    </Grid>
+
+                                    <!-- ================================ Focus -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,6">
+                                        <ctl:AppIcon Kind="Timer"
+                                                     IconSize="{StaticResource IconSizeTiny}"
+                                                     Foreground="{DynamicResource TextMutedBrush}"
+                                                     Margin="0,0,6,0" />
+                                        <TextBlock Style="{StaticResource TextSection}" Text="Focus" />
+                                    </StackPanel>
+
+                                    <StackPanel Orientation="Horizontal" Margin="{StaticResource GapBelow6}">
+                                        <TextBlock Style="{StaticResource TextMeta}"
+                                                   Text="Default"
+                                                   Width="52"
+                                                   VerticalAlignment="Center" />
+                                        <TextBox Style="{StaticResource SettingsNumberBox}"
+                                                 Text="{Binding DefaultDuration.Hours, UpdateSourceTrigger=PropertyChanged, FallbackValue=0}"
+                                                 AutomationProperties.Name="Default hours"
+                                                 ToolTip="Hours, 0 to 99" />
+                                        <TextBlock Style="{StaticResource TextMeta}" Text="h" Margin="3,0,6,0" VerticalAlignment="Center" />
+                                        <TextBox Style="{StaticResource SettingsNumberBox}"
+                                                 Text="{Binding DefaultDuration.Minutes, UpdateSourceTrigger=PropertyChanged, FallbackValue=30}"
+                                                 AutomationProperties.Name="Default minutes"
+                                                 ToolTip="Minutes, 0 to 59" />
+                                        <TextBlock Style="{StaticResource TextMeta}" Text="m" Margin="3,0,6,0" VerticalAlignment="Center" />
+                                        <TextBox Style="{StaticResource SettingsNumberBox}"
+                                                 Text="{Binding DefaultDuration.Seconds, UpdateSourceTrigger=PropertyChanged, FallbackValue=0}"
+                                                 AutomationProperties.Name="Default seconds"
+                                                 ToolTip="Seconds, 0 to 59" />
+                                        <TextBlock Style="{StaticResource TextMeta}" Text="s" Margin="3,0,0,0" VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <ToggleButton Style="{StaticResource FilterPill}"
+                                                  HorizontalAlignment="Left"
+                                                  Margin="{StaticResource GapBelow4}"
+                                                  Content="Stop the timer when a task is completed"
+                                                  IsChecked="{Binding StopTimerWhenTaskCompleted, Mode=OneWay}"
+                                                  Command="{Binding ToggleStopTimerWhenTaskCompletedCommand}"
+                                                  ToolTip="Ticking a task off ends its own focus session and keeps the time already spent"
+                                                  AutomationProperties.Name="Stop the timer when a task is completed" />
+
+                                    <ToggleButton Style="{StaticResource FilterPill}"
+                                                  HorizontalAlignment="Left"
+                                                  Content="Sound when a session ends"
+                                                  IsChecked="{Binding SoundEnabled, Mode=OneWay}"
+                                                  Command="{Binding ToggleSoundCommand}"
+                                                  AutomationProperties.Name="Sound when a session ends" />
+                                </StackPanel>
+
+                                <Rectangle Grid.Column="1"
+                                           Width="1"
+                                           Fill="{DynamicResource BorderSubtleBrush}"
+                                           Margin="14,0,14,0"
+                                           SnapsToDevicePixels="True" />
+
+                                <!-- ================================ Behaviour and data -->
+                                <StackPanel Grid.Column="2">
+                                    <StackPanel Orientation="Horizontal" Margin="{StaticResource GapBelow6}">
+                                        <ctl:AppIcon Kind="Options"
+                                                     IconSize="{StaticResource IconSizeTiny}"
+                                                     Foreground="{DynamicResource TextMutedBrush}"
+                                                     Margin="0,0,6,0" />
+                                        <TextBlock Style="{StaticResource TextSection}" Text="Behaviour" />
+                                    </StackPanel>
+
+                                    <WrapPanel Margin="{StaticResource GapBelow8}">
+                                        <ToggleButton Style="{StaticResource FilterPill}"
+                                                      Content="Open on hover"
+                                                      Margin="0,0,4,4"
+                                                      IsChecked="{Binding OpenOnHover, Mode=OneWay}"
+                                                      Command="{Binding ToggleOpenOnHoverCommand}"
+                                                      AutomationProperties.Name="Open on hover" />
+                                        <ToggleButton Style="{StaticResource FilterPill}"
+                                                      Content="Always on top"
+                                                      Margin="0,0,4,4"
+                                                      IsChecked="{Binding AlwaysOnTop, Mode=OneWay}"
+                                                      Command="{Binding ToggleAlwaysOnTopCommand}"
+                                                      AutomationProperties.Name="Always on top" />
+                                        <ToggleButton Style="{StaticResource FilterPill}"
+                                                      Content="Start with Windows"
+                                                      Margin="0,0,4,4"
+                                                      IsChecked="{Binding StartWithWindows, Mode=OneWay}"
+                                                      Command="{Binding ToggleStartWithWindowsCommand}"
+                                                      AutomationProperties.Name="Start with Windows" />
+                                    </WrapPanel>
+
+                                    <StackPanel Orientation="Horizontal" Margin="{StaticResource GapBelow4}">
+                                        <ctl:AppIcon Kind="Desktop"
+                                                     IconSize="{StaticResource IconSizeTiny}"
+                                                     Foreground="{DynamicResource TextMutedBrush}"
+                                                     Margin="0,0,6,0" />
+                                        <TextBlock Style="{StaticResource TextMeta}" Text="Display" VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <ItemsControl ItemsSource="{Binding Monitors}"
+                                                  Focusable="False"
+                                                  Margin="{StaticResource GapBelow8}"
+                                                  AutomationProperties.Name="Display">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type vm:MonitorOptionViewModel}">
+                                                <ToggleButton Style="{StaticResource FilterPill}"
+                                                              Content="{Binding Label}"
+                                                              Margin="0,0,4,4"
+                                                              IsChecked="{Binding IsSelected, Mode=OneWay}"
+                                                              Command="{Binding SelectCommand}"
+                                                              AutomationProperties.Name="{Binding Label}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,6">
+                                        <ctl:AppIcon Kind="Database"
+                                                     IconSize="{StaticResource IconSizeTiny}"
+                                                     Foreground="{DynamicResource TextMutedBrush}"
+                                                     Margin="0,0,6,0" />
+                                        <TextBlock Style="{StaticResource TextSection}" Text="Data" />
+                                    </StackPanel>
+
+                                    <TextBlock Style="{StaticResource TextMeta}"
+                                               Text="{Binding DatabasePath}"
+                                               ToolTip="{Binding DatabasePath}"
+                                               TextTrimming="CharacterEllipsis"
+                                               Margin="{StaticResource GapBelow6}" />
+
+                                    <WrapPanel>
+                                        <Button Style="{StaticResource GhostButton}"
+                                                Height="24"
+                                                MinWidth="0"
+                                                Margin="0,0,4,4"
+                                                Command="{Binding RevealDatabaseCommand}"
+                                                ToolTip="Open the folder the data lives in"
+                                                AutomationProperties.Name="Open the data folder">
+                                            <StackPanel Orientation="Horizontal">
+                                                <ctl:AppIcon Kind="Folder" IconSize="{StaticResource IconSizeTiny}" Margin="0,0,5,0" />
+                                                <TextBlock Text="Folder" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Style="{StaticResource GhostButton}"
+                                                Height="24"
+                                                MinWidth="0"
+                                                Margin="0,0,4,4"
+                                                Command="{Binding CreateBackupCommand}"
+                                                ToolTip="Write a copy of the database now"
+                                                AutomationProperties.Name="Create a backup">
+                                            <StackPanel Orientation="Horizontal">
+                                                <ctl:AppIcon Kind="Save" IconSize="{StaticResource IconSizeTiny}" Margin="0,0,5,0" />
+                                                <TextBlock Text="Back up" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Style="{StaticResource GhostButton}"
+                                                Height="24"
+                                                MinWidth="0"
+                                                Margin="0,0,4,4"
+                                                Command="{Binding RestoreBackupCommand}"
+                                                ToolTip="Replace the current data with a backup"
+                                                AutomationProperties.Name="Restore a backup">
+                                            <StackPanel Orientation="Horizontal">
+                                                <ctl:AppIcon Kind="ArrowReset" IconSize="{StaticResource IconSizeTiny}" Margin="0,0,5,0" />
+                                                <TextBlock Text="Restore" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Style="{StaticResource GhostButton}"
+                                                Height="24"
+                                                MinWidth="0"
+                                                Margin="0,0,0,4"
+                                                Command="{Binding ExportDataCommand}"
+                                                ToolTip="Write tasks, sessions and time to CSV files"
+                                                AutomationProperties.Name="Export data">
+                                            <StackPanel Orientation="Horizontal">
+                                                <ctl:AppIcon Kind="ArrowExport" IconSize="{StaticResource IconSizeTiny}" Margin="0,0,5,0" />
+                                                <TextBlock Text="Export" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </Button>
+                                    </WrapPanel>
+
+                                    <!-- One line of feedback, never a dialog. -->
+                                    <TextBlock Style="{StaticResource TextMeta}"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               Text="{Binding DataMessage}"
+                                               TextWrapping="Wrap"
+                                               Margin="0,2,0,0"
+                                               Visibility="{Binding HasDataMessage, Converter={StaticResource BoolToVis}}" />
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+                    </ctl:LiquidGlassPanel>
+                </Grid>
+
+            </StackPanel>
+
+            <!-- ============================================ Snackbar -->
+            <!-- Floats over the panel, so showing or hiding it never resizes anything. -->
+            <ctl:LiquidGlassPanel x:Name="UndoSnackbar"
+                    VerticalAlignment="Bottom"
+                    HorizontalAlignment="Center"
+                    Margin="0,0,0,10"
+                    MinWidth="220"
+                    Height="30"
+                    CornerRadius="{StaticResource InputRadius}"
+                    Padding="10,0,6,0"
+                    GlassBrush="{DynamicResource GlassRaisedBrush}"
+                    ContourOpacity="0"
+                    ShowTopHighlight="False"
+                    Elevation="Popup"
+                    Visibility="{Binding IsUndoVisible, Converter={StaticResource BoolToVis}}">
+                <Grid>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <ctl:AppIcon Kind="ArrowReset"
+                                     IconSize="{StaticResource IconSizeTiny}"
+                                     Foreground="{DynamicResource TextMutedBrush}"
+                                     Margin="0,0,6,0" />
+                        <TextBlock Style="{StaticResource TextSecondary}"
+                                   Text="{Binding UndoMessage}"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,12,0" />
+                    </StackPanel>
+                    <Button HorizontalAlignment="Right"
+                            Style="{StaticResource LinkButton}"
+                            Command="{Binding UndoDeleteCommand}"
+                            Content="Undo"
+                            AutomationProperties.Name="Undo delete" />
+                </Grid>
+            </ctl:LiquidGlassPanel>
+
+            <!-- ============================================ Duration picker -->
+            <Canvas x:Name="OverlayCanvas"
+                    Visibility="{Binding IsDurationPickerOpen, Converter={StaticResource BoolToVis}}">
+                <!-- Floating glass, anchored to the control that opened it. Denser than the
+                     panel underneath and lifted further off it, because a popover has to read as
+                     being in front of the surface it covers rather than part of it. -->
+                <ctl:LiquidGlassPanel x:Name="DurationPopover"
+                                      Width="228"
+                                      CornerRadius="{StaticResource PopoverRadius}"
+                                      Padding="{StaticResource PopoverPadding}"
+                                      GlassBrush="{DynamicResource GlassRaisedBrush}"
+                                      ContourOpacity="0"
+                                      Elevation="Popup"
+                                      DataContext="{Binding DurationPicker}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource TextSection}"
+                                   Text="Focus duration"
+                                   HorizontalAlignment="Center"
+                                   Margin="{StaticResource GapBelow6}" />
+
+                        <!-- Presets first: most sessions are one of four lengths, and reaching
+                             them should not mean touching three columns. -->
+                        <UniformGrid Rows="1" Columns="4" Margin="{StaticResource GapBelow8}">
+                            <Button Style="{StaticResource GhostButton}" Content="25m" MinWidth="0"
+                                    Height="22" Margin="0,0,3,0" Padding="0"
+                                    Command="{Binding ApplyPresetCommand}"
+                                    CommandParameter="{Binding Presets[0]}"
+                                    AutomationProperties.Name="Twenty-five minutes" />
+                            <Button Style="{StaticResource GhostButton}" Content="45m" MinWidth="0"
+                                    Height="22" Margin="3,0,3,0" Padding="0"
+                                    Command="{Binding ApplyPresetCommand}"
+                                    CommandParameter="{Binding Presets[1]}"
+                                    AutomationProperties.Name="Forty-five minutes" />
+                            <Button Style="{StaticResource GhostButton}" Content="1h" MinWidth="0"
+                                    Height="22" Margin="3,0,3,0" Padding="0"
+                                    Command="{Binding ApplyPresetCommand}"
+                                    CommandParameter="{Binding Presets[2]}"
+                                    AutomationProperties.Name="One hour" />
+                            <Button Style="{StaticResource GhostButton}" Content="2h" MinWidth="0"
+                                    Height="22" Margin="3,0,0,0" Padding="0"
+                                    Command="{Binding ApplyPresetCommand}"
+                                    CommandParameter="{Binding Presets[3]}"
+                                    AutomationProperties.Name="Two hours" />
+                        </UniformGrid>
+
+                        <!-- Three aligned columns. Each clamps to its own range and never
+                             carries into its neighbour: pressing up on 59 seconds must not
+                             quietly change the minutes somebody had already set. -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="14" />
+                                <RowDefinition Height="18" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="18" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource TextPill}" Text="HRS" />
+                            <TextBlock Grid.Row="0" Grid.Column="2" Style="{StaticResource TextPill}" Text="MIN" />
+                            <TextBlock Grid.Row="0" Grid.Column="4" Style="{StaticResource TextPill}" Text="SEC" />
+
+                            <ctl:IconButton Grid.Row="1"
+                                            Grid.Column="0"
+                                            Style="{StaticResource IconButtonCompact}"
+                                            Height="18"
+                                            Icon="ChevronUp"
+                                            Command="{Binding IncrementHoursCommand}"
+                                            ToolTip="Increase hours"
+                                            AutomationProperties.Name="Increase hours" />
+                            <ctl:IconButton Grid.Row="1"
+                                            Grid.Column="2"
+                                            Style="{StaticResource IconButtonCompact}"
+                                            Height="18"
+                                            Icon="ChevronUp"
+                                            Command="{Binding IncrementMinutesCommand}"
+                                            ToolTip="Increase minutes"
+                                            AutomationProperties.Name="Increase minutes" />
+                            <ctl:IconButton Grid.Row="1"
+                                            Grid.Column="4"
+                                            Style="{StaticResource IconButtonCompact}"
+                                            Height="18"
+                                            Icon="ChevronUp"
+                                            Command="{Binding IncrementSecondsCommand}"
+                                            ToolTip="Increase seconds"
+                                            AutomationProperties.Name="Increase seconds" />
+
+                            <TextBox x:Name="HoursBox" Grid.Row="2" Grid.Column="0"
+                                     Style="{StaticResource DurationTextBox}"
+                                     Text="{Binding Hours, UpdateSourceTrigger=PropertyChanged, FallbackValue=0}"
+                                     TabIndex="0"
+                                     AutomationProperties.Name="Hours"
+                                     ToolTip="Hours, 0 to 99" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource TextDisplayNumber}"
+                                       Foreground="{DynamicResource TextMutedBrush}" Text=":"
+                                       Margin="3,0,3,0" VerticalAlignment="Center" />
+                            <TextBox x:Name="MinutesBox" Grid.Row="2" Grid.Column="2"
+                                     Style="{StaticResource DurationTextBox}"
+                                     Text="{Binding Minutes, UpdateSourceTrigger=PropertyChanged, FallbackValue=30}"
+                                     TabIndex="1"
+                                     AutomationProperties.Name="Minutes"
+                                     ToolTip="Minutes, 0 to 59" />
+                            <TextBlock Grid.Row="2" Grid.Column="3" Style="{StaticResource TextDisplayNumber}"
+                                       Foreground="{DynamicResource TextMutedBrush}" Text=":"
+                                       Margin="3,0,3,0" VerticalAlignment="Center" />
+                            <TextBox x:Name="SecondsBox" Grid.Row="2" Grid.Column="4"
+                                     Style="{StaticResource DurationTextBox}"
+                                     Text="{Binding Seconds, UpdateSourceTrigger=PropertyChanged, FallbackValue=0}"
+                                     TabIndex="2"
+                                     AutomationProperties.Name="Seconds"
+                                     ToolTip="Seconds, 0 to 59" />
+
+                            <ctl:IconButton Grid.Row="3"
+                                            Grid.Column="0"
+                                            Style="{StaticResource IconButtonCompact}"
+                                            Height="18"
+                                            Icon="ChevronDown"
+                                            Command="{Binding DecrementHoursCommand}"
+                                            ToolTip="Decrease hours"
+                                            AutomationProperties.Name="Decrease hours" />
+                            <ctl:IconButton Grid.Row="3"
+                                            Grid.Column="2"
+                                            Style="{StaticResource IconButtonCompact}"
+                                            Height="18"
+                                            Icon="ChevronDown"
+                                            Command="{Binding DecrementMinutesCommand}"
+                                            ToolTip="Decrease minutes"
+                                            AutomationProperties.Name="Decrease minutes" />
+                            <ctl:IconButton Grid.Row="3"
+                                            Grid.Column="4"
+                                            Style="{StaticResource IconButtonCompact}"
+                                            Height="18"
+                                            Icon="ChevronDown"
+                                            Command="{Binding DecrementSecondsCommand}"
+                                            ToolTip="Decrease seconds"
+                                            AutomationProperties.Name="Decrease seconds" />
+                        </Grid>
+
+                        <TextBlock Style="{StaticResource TextMeta}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,6,0,0"
+                                   Text="{Binding SummaryText}" />
+
+                        <TextBlock Style="{StaticResource TextMeta}"
+                                   Foreground="{DynamicResource DangerBrush}"
+                                   Margin="0,4,0,0"
+                                   TextWrapping="Wrap"
+                                   Text="{Binding ValidationMessage}"
+                                   Visibility="{Binding HasValidationMessage, Converter={StaticResource BoolToVis}}" />
+
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0"
+                                    Style="{StaticResource GhostButton}"
+                                    MinWidth="0"
+                                    Padding="4,0,4,0"
+                                    Content="Cancel"
+                                    Margin="0,0,3,0"
+                                    Command="{Binding DataContext.CloseOverlayCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    AutomationProperties.Name="Cancel" />
+                            <Button Grid.Column="1"
+                                    Style="{StaticResource GhostButton}"
+                                    MinWidth="0"
+                                    Padding="4,0,4,0"
+                                    Content="Save"
+                                    Margin="3,0,3,0"
+                                    IsEnabled="{Binding CanStart}"
+                                    Command="{Binding DataContext.SaveDurationCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    AutomationProperties.Name="Save the duration without starting" />
+                            <Button Grid.Column="2"
+                                    Style="{StaticResource PrimaryButton}"
+                                    MinWidth="0"
+                                    Padding="4,0,4,0"
+                                    Content="Start"
+                                    Margin="3,0,0,0"
+                                    IsEnabled="{Binding CanStart}"
+                                    Command="{Binding DataContext.SaveDurationAndStartCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    AutomationProperties.Name="Save the duration and start focus" />
+                        </Grid>
+                    </StackPanel>
+                </ctl:LiquidGlassPanel>
+            </Canvas>
+
+            <!-- ============================================ Inline confirmations -->
+
+            <ctl:LiquidGlassPanel x:Name="SwitchConfirm"
+                    VerticalAlignment="Top"
+                    HorizontalAlignment="Center"
+                    Margin="0,48,0,0"
+                    MaxWidth="330"
+                    CornerRadius="{StaticResource PopoverRadius}"
+                    Padding="{StaticResource PopoverPadding}"
+                    GlassBrush="{DynamicResource GlassRaisedBrush}"
+                    AccentContourBrush="{DynamicResource PausedGradientBrush}"
+                    ContourOpacity="0.85"
+                    Elevation="Popup"
+                    Visibility="{Binding IsSwitchConfirmationOpen, Converter={StaticResource BoolToVis}}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource TextSecondary}"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               TextWrapping="Wrap"
+                               Margin="{StaticResource GapBelow8}"
+                               Text="{Binding SwitchPrompt}" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Style="{StaticResource GhostButton}"
+                                Content="Keep current"
+                                Margin="{StaticResource GapRight6}"
+                                Command="{Binding CancelSwitchCommand}"
+                                AutomationProperties.Name="Keep the current focus session" />
+                        <Button Style="{StaticResource PrimaryButton}"
+                                Content="Switch"
+                                Command="{Binding ConfirmSwitchCommand}"
+                                AutomationProperties.Name="Switch focus to the new task" />
+                    </StackPanel>
+                </StackPanel>
+            </ctl:LiquidGlassPanel>
+
+            <ctl:LiquidGlassPanel x:Name="DeleteConfirm"
+                    VerticalAlignment="Top"
+                    HorizontalAlignment="Center"
+                    Margin="0,48,0,0"
+                    MaxWidth="300"
+                    CornerRadius="{StaticResource PopoverRadius}"
+                    Padding="{StaticResource PopoverPadding}"
+                    GlassBrush="{DynamicResource GlassRaisedBrush}"
+                    AccentContourBrush="{DynamicResource DangerGradientBrush}"
+                    ContourOpacity="0.85"
+                    Elevation="Popup"
+                    Visibility="{Binding IsDeleteConfirmationOpen, Converter={StaticResource BoolToVis}}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource TextSecondary}"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               TextWrapping="Wrap"
+                               Margin="{StaticResource GapBelow8}"
+                               Text="{Binding DeletePrompt}" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Style="{StaticResource GhostButton}"
+                                Content="Cancel"
+                                Margin="{StaticResource GapRight6}"
+                                Command="{Binding CancelDeleteCommand}"
+                                AutomationProperties.Name="Cancel" />
+                        <Button Style="{StaticResource DangerButton}"
+                                Content="Delete"
+                                Command="{Binding ConfirmDeleteCommand}"
+                                AutomationProperties.Name="Delete the task" />
+                    </StackPanel>
+                </StackPanel>
+            </ctl:LiquidGlassPanel>
+
+            <ctl:LiquidGlassPanel x:Name="CompletionCard"
+                    VerticalAlignment="Top"
+                    HorizontalAlignment="Center"
+                    Margin="0,48,0,0"
+                    MaxWidth="340"
+                    CornerRadius="{StaticResource PopoverRadius}"
+                    Padding="{StaticResource PopoverPadding}"
+                    GlassBrush="{DynamicResource GlassRaisedBrush}"
+                    AccentContourBrush="{DynamicResource SuccessGradientBrush}"
+                    ContourOpacity="0.9"
+                    Elevation="Popup"
+                    Visibility="{Binding IsCompletionVisible, Converter={StaticResource BoolToVis}}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="{StaticResource GapBelow4}">
+                        <ctl:AppIcon Kind="CheckmarkCircle"
+                                     Variant="Filled"
+                                     IconSize="{StaticResource IconSizeTiny}"
+                                     Foreground="{DynamicResource SuccessBrush}"
+                                     Margin="0,0,6,0" />
+                        <TextBlock Style="{StaticResource TextSection}" Text="Focus session complete" />
+                    </StackPanel>
+                    <TextBlock Style="{StaticResource TextSecondary}"
+                               TextWrapping="Wrap"
+                               Margin="{StaticResource GapBelow8}"
+                               Text="{Binding CompletionTitle}" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Style="{StaticResource GhostButton}"
+                                Content="Dismiss"
+                                Margin="{StaticResource GapRight6}"
+                                Command="{Binding DismissCompletionCommand}"
+                                AutomationProperties.Name="Dismiss" />
+                        <Button Style="{StaticResource PrimaryButton}"
+                                Content="Mark task complete"
+                                MinWidth="118"
+                                Command="{Binding MarkCompletedTaskDoneCommand}"
+                                AutomationProperties.Name="Mark the task complete" />
+                    </StackPanel>
+                </StackPanel>
+            </ctl:LiquidGlassPanel>
+
+
+            <!-- ============================================ Add time -->
+            <!-- Recording work that happened without a timer. It writes a manual entry, which
+                 is stored apart from the timer's own runs so the two can never be added
+                 together twice. -->
+            <ctl:LiquidGlassPanel x:Name="ManualTimeCard"
+                    VerticalAlignment="Top"
+                    HorizontalAlignment="Center"
+                    Margin="0,48,0,0"
+                    Width="290"
+                    CornerRadius="{StaticResource PopoverRadius}"
+                    Padding="{StaticResource PopoverPadding}"
+                    GlassBrush="{DynamicResource GlassRaisedBrush}"
+                    ContourOpacity="0"
+                    Elevation="Popup"
+                    Visibility="{Binding IsManualTimeOpen, Converter={StaticResource BoolToVis}}">
+                <StackPanel DataContext="{Binding ManualTime}">
+                    <StackPanel Orientation="Horizontal" Margin="{StaticResource GapBelow4}">
+                        <ctl:AppIcon Kind="Clock"
+                                     IconSize="{StaticResource IconSizeTiny}"
+                                     Foreground="{DynamicResource TextMutedBrush}"
+                                     Margin="0,0,6,0" />
+                        <TextBlock Style="{StaticResource TextSection}" Text="Add time" />
+                    </StackPanel>
+
+                    <TextBlock Style="{StaticResource TextSecondary}"
+                               TextTrimming="CharacterEllipsis"
+                               Text="{Binding TaskTitle}"
+                               ToolTip="{Binding TaskTitle}" />
+                    <TextBlock Style="{StaticResource TextMeta}"
+                               Margin="{StaticResource GapBelow8}"
+                               Text="{Binding DateLabel}" />
+
+                    <Grid Margin="{StaticResource GapBelow8}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="14" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource TextPill}" Text="HRS" />
+                        <TextBlock Grid.Row="0" Grid.Column="2" Style="{StaticResource TextPill}" Text="MIN" />
+
+                        <TextBox Grid.Row="1" Grid.Column="0"
+                                 Style="{StaticResource DurationTextBox}"
+                                 Text="{Binding Hours, UpdateSourceTrigger=PropertyChanged, FallbackValue=0}"
+                                 AutomationProperties.Name="Hours to add"
+                                 ToolTip="Hours, 0 to 99" />
+                        <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource TextDisplayNumber}"
+                                   Foreground="{DynamicResource TextMutedBrush}" Text=":"
+                                   Margin="3,0,3,0" VerticalAlignment="Center" />
+                        <TextBox Grid.Row="1" Grid.Column="2"
+                                 Style="{StaticResource DurationTextBox}"
+                                 Text="{Binding Minutes, UpdateSourceTrigger=PropertyChanged, FallbackValue=30}"
+                                 AutomationProperties.Name="Minutes to add"
+                                 ToolTip="Minutes, 0 to 59" />
+                        <TextBlock Grid.Row="1" Grid.Column="3"
+                                   Style="{StaticResource TextMeta}"
+                                   VerticalAlignment="Bottom"
+                                   Margin="8,0,0,4"
+                                   Text="{Binding SummaryText}" />
+                    </Grid>
+
+                    <TextBox Style="{StaticResource NotchTextBox}"
+                             Tag="Note (optional)"
+                             Text="{Binding Note, UpdateSourceTrigger=PropertyChanged}"
+                             Margin="{StaticResource GapBelow8}"
+                             AutomationProperties.Name="Note, optional" />
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Style="{StaticResource GhostButton}"
+                                Content="Cancel"
+                                Margin="{StaticResource GapRight6}"
+                                Command="{Binding DataContext.CancelManualTimeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                AutomationProperties.Name="Cancel" />
+                        <Button Style="{StaticResource PrimaryButton}"
+                                Content="Add time"
+                                IsEnabled="{Binding CanSave}"
+                                Command="{Binding DataContext.SaveManualTimeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                AutomationProperties.Name="Add this time to the task" />
+                    </StackPanel>
+                </StackPanel>
+            </ctl:LiquidGlassPanel>
+
+            <!-- A timer that ran out while the app was closed is reconciled silently and said
+                 once, here, rather than through a dialog nobody asked for. -->
+            <Border VerticalAlignment="Bottom"
+                    HorizontalAlignment="Center"
+                    Margin="0,0,0,10"
+                    Background="{DynamicResource SurfaceRaisedBrush}"
+                    BorderBrush="{DynamicResource EdgeCompletedBrush}"
+                    BorderThickness="{DynamicResource HairlineThickness}"
+                    CornerRadius="{StaticResource InputRadius}"
+                    Padding="0,0,4,0"
+                    Height="30"
+                    SnapsToDevicePixels="True"
+                    Visibility="{Binding HasOfflineNotice, Converter={StaticResource BoolToVis}}">
+                <StackPanel Orientation="Horizontal">
+                    <!-- The completion ramp, on the one edge of the notice. A three-pixel bar is
+                         where a gradient belongs: it is the indicator, not the surface. -->
+                    <Rectangle Width="3"
+                               Fill="{DynamicResource SuccessGradientBrush}"
+                               Margin="{StaticResource GapRight8}"
+                               SnapsToDevicePixels="True" />
+                    <ctl:AppIcon Kind="CheckmarkCircle"
+                                 Variant="Filled"
+                                 IconSize="{StaticResource IconSizeTiny}"
+                                 Foreground="{DynamicResource SuccessBrush}"
+                                 Margin="0,0,6,0" />
+                    <TextBlock Style="{StaticResource TextSecondary}"
+                               VerticalAlignment="Center"
+                               MaxWidth="420"
+                               TextTrimming="CharacterEllipsis"
+                               Text="{Binding OfflineNotice}" />
+                    <ctl:IconButton Style="{StaticResource IconButtonCompact}"
+                                    Icon="Dismiss"
+                                    Margin="8,0,0,0"
+                                    Command="{Binding DismissOfflineNoticeCommand}"
+                                    ToolTip="Dismiss"
+                                    AutomationProperties.Name="Dismiss" />
+                </StackPanel>
+            </Border>
+
+            <!-- Non-destructive persistence error state -->
+            <Border VerticalAlignment="Bottom"
+                    Background="{DynamicResource ErrorSurfaceBrush}"
+                    BorderBrush="{DynamicResource ErrorBorderBrush}"
+                    BorderThickness="{DynamicResource HairlineThickness}"
+                    CornerRadius="{StaticResource InputRadius}"
+                    Padding="0,6,10,6"
+                    Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}">
+                <StackPanel Orientation="Horizontal">
+                    <Rectangle Width="3"
+                               Fill="{DynamicResource DangerGradientBrush}"
+                               Margin="{StaticResource GapRight8}"
+                               SnapsToDevicePixels="True" />
+                    <ctl:AppIcon Kind="ErrorCircle"
+                                 Variant="Filled"
+                                 IconSize="{StaticResource IconSizeTiny}"
+                                 Foreground="{DynamicResource DangerBrush}"
+                                 VerticalAlignment="Top"
+                                 Margin="{StaticResource GapRight6}" />
+                    <TextBlock Style="{StaticResource TextSecondary}"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               TextWrapping="Wrap"
+                               MaxWidth="520"
+                               Text="{Binding ErrorBanner}" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

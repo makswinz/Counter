@@ -1,0 +1,21 @@
+# Build output
+bin/
+obj/
+artifacts/
+
+# User-specific project files
+*.user
+*.suo
+.vs/
+
+# Rider and VS Code
+.idea/
+.vscode/
+
+# Test and coverage output
+TestResults/
+*.coverage
+*.trx
+
+# Local scratch
+*.log

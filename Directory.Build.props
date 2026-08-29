@@ -1,0 +1,34 @@
+<Project>
+
+  <!--
+    Identity and version, in one place.
+
+    Every project inherits this, so the number that ends up in the executable's file properties,
+    in the installer's Add/Remove Programs entry and on the GitHub release is one number rather
+    than three that have to be kept in step by hand. Bumping a release is editing the line below.
+  -->
+  <PropertyGroup>
+    <Version>1.0.0</Version>
+    <Product>Focus Notch</Product>
+    <Company>Focus Notch</Company>
+    <Authors>Maks Winz</Authors>
+    <Copyright>Copyright (c) 2026 Maks Winz</Copyright>
+    <Description>A focus timer and task planner that lives in a notch at the top of the screen.</Description>
+    <RepositoryUrl>https://github.com/makswinz/FocusNotch</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <!--
+    Warnings are errors everywhere.
+
+    The suite has been at zero warnings since the beginning, and the cheapest way to keep it
+    there is to make the build refuse rather than to rely on anybody reading the output. CI runs
+    the same build, so a warning cannot reach the default branch either.
+  -->
+  <PropertyGroup>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+</Project>

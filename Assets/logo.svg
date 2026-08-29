@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">COUNT segmented C icon</title>
+  <desc id="desc">A modern C made from seven softly illuminated rounded count blocks on an orange gradient.</desc>
+
+  <defs>
+    <linearGradient id="background" x1="0.06" y1="0.02" x2="0.94" y2="0.98">
+      <stop offset="0" stop-color="#FFC870"/>
+      <stop offset="0.34" stop-color="#FFA037"/>
+      <stop offset="0.7" stop-color="#FF7217"/>
+      <stop offset="1" stop-color="#E94A07"/>
+    </linearGradient>
+
+    <radialGradient id="ambient" cx="0.18" cy="0.1" r="0.92">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.32"/>
+      <stop offset="0.42" stop-color="#FFFFFF" stop-opacity="0.05"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="ivory" x1="0.08" y1="0" x2="0.92" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.5" stop-color="#FFFDF8"/>
+      <stop offset="1" stop-color="#FFD7B0"/>
+    </linearGradient>
+
+    <filter id="depth" x="-60%" y="-60%" width="220%" height="235%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="18" result="blur"/>
+      <feOffset dx="4" dy="24" result="offset"/>
+      <feColorMatrix in="offset" type="matrix"
+        values="0 0 0 0 0.27  0 0 0 0 0.05  0 0 0 0 0  0 0 0 0.34 0" result="shadow"/>
+      <feMerge>
+        <feMergeNode in="shadow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#background)"/>
+  <rect width="1024" height="1024" fill="url(#ambient)"/>
+
+  <!-- Seven count units form one instantly readable digital C. -->
+  <g filter="url(#depth)" fill="url(#ivory)">
+    <rect x="198" y="202" width="176" height="176" rx="54"/>
+    <rect x="424" y="202" width="176" height="176" rx="54"/>
+    <rect x="650" y="214" width="154" height="154" rx="49"/>
+
+    <rect x="186" y="424" width="176" height="176" rx="54"/>
+
+    <rect x="198" y="646" width="176" height="176" rx="54"/>
+    <rect x="424" y="646" width="176" height="176" rx="54"/>
+    <rect x="650" y="656" width="154" height="154" rx="49"/>
+  </g>
+
+  <!-- One restrained shared highlight establishes the lighting direction. -->
+  <g fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" opacity="0.68">
+    <path d="M 230 228 H 331"/>
+    <path d="M 456 228 H 557"/>
+    <path d="M 681 239 H 772"/>
+    <path d="M 218 450 H 319"/>
+    <path d="M 230 672 H 331"/>
+    <path d="M 456 672 H 557"/>
+    <path d="M 681 681 H 772"/>
+  </g>
+</svg>

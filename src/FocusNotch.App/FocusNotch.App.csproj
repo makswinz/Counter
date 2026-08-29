@@ -1,0 +1,60 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <Platforms>AnyCPU;x64</Platforms>
+    <RootNamespace>FocusNotch.App</RootNamespace>
+    <AssemblyName>FocusNotch</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+
+    <!--
+      The application icon: what Windows shows on the taskbar, in the Start menu, on a desktop
+      shortcut and in the file's own properties. It is generated from the same drawing the tray
+      uses, so the two can never disagree - see Branding, and tools/New-AppIcon.ps1 to regenerate.
+    -->
+    <ApplicationIcon>..\..\Assets\FocusNotch.ico</ApplicationIcon>
+
+    <!-- A portable build is one file. Publishing with /p:PublishSingleFile=true collapses the
+         runtime into the executable; the SQLite native library cannot live inside it, so it is
+         extracted beside the exe on first run rather than bundled. -->
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <!-- System.Drawing renders the application mark into an icon and synthesizes the chime. -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!-- WFAC010 is a WinForms analyzer. WPF reads its DPI awareness from the manifest,
+         so the manifest declaration is the correct mechanism here. -->
+    <NoWarn>$(NoWarn);WFAC010</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- WinForms is used only for the tray icon. Drop its global usings so WPF types such as
+         Application, MouseEventArgs and KeyEventArgs resolve without an alias everywhere else. -->
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The application mark. Compiled in so the tray, the taskbar, the Start menu and the
+         installer all draw the same image; see Branding. Edit Assets/logo.svg, export it to
+         Assets/logo.png at 1024, then run tools/New-AppIcon.ps1. -->
+    <EmbeddedResource Include="..\..\Assets\logo.png" LogicalName="FocusNotch.Logo.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FocusNotch.Core\FocusNotch.Core.csproj" />
+  </ItemGroup>
+
+</Project>

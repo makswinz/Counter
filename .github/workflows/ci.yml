@@ -1,0 +1,41 @@
+name: Build and test
+
+# Every push and every pull request. The suite is fast and needs no display, so there is no
+# reason to gate it behind anything.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    # WPF, WinForms and the rendering tests all need a real Windows image.
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore FocusNotch.sln
+
+      - name: Build
+        run: dotnet build FocusNotch.sln --configuration Release --no-restore
+
+      # Warnings are errors in Directory.Build.props, so a clean build here means a clean build
+      # everywhere. The tests include the icon guard, which fails if the committed .ico stopped
+      # matching the drawing that produces it.
+      - name: Test
+        run: dotnet test FocusNotch.sln --configuration Release --no-build --logger "trx;LogFileName=results.trx"
+
+      - name: Publish test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/TestResults/*.trx'
+          if-no-files-found: ignore

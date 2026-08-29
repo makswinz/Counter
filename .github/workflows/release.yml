@@ -1,0 +1,49 @@
+name: Release
+
+# Tag a commit v1.2.3 and push the tag; everything below is automatic. The version in the
+# artifacts comes from Directory.Build.props, so the tag and that file have to agree - the job
+# checks rather than trusting.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Check the tag matches the project version
+        shell: pwsh
+        run: |
+          $version = ([xml](Get-Content Directory.Build.props)).Project.PropertyGroup.Version | Select-Object -First 1
+          $tag = "${{ github.ref_name }}" -replace '^v', ''
+          if ($version.Trim() -ne $tag) {
+            throw "Tag $tag does not match <Version> $version in Directory.Build.props."
+          }
+          "Releasing $version"
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Build, test and package
+        shell: pwsh
+        run: .\package.ps1
+
+      - name: Publish the release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          generate_release_notes: true
+          files: |
+            artifacts/FocusNotch-Setup-*.exe
+            artifacts/FocusNotch-*-portable.exe
