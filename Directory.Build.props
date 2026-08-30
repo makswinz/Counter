@@ -8,7 +8,7 @@
     than three that have to be kept in step by hand. Bumping a release is editing the line below.
   -->
   <PropertyGroup>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <Product>Counter</Product>
     <Company>Counter</Company>
     <Authors>Maks Winz</Authors>

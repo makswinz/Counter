@@ -87,9 +87,9 @@
     <SolidColorBrush x:Key="BorderSubtleBrush"              Color="#FF2A3340" />
     <SolidColorBrush x:Key="BorderVisibleBrush"             Color="#FF354152" />
     <SolidColorBrush x:Key="TextPrimaryBrush"               Color="#FFF4F7FA" />
-    <SolidColorBrush x:Key="TextSecondaryBrush"             Color="#FFAAB4C2" />
-    <SolidColorBrush x:Key="TextMutedBrush"                 Color="#FF737F90" />
-    <SolidColorBrush x:Key="TextDisabledBrush"              Color="#FF4A5563" />
+    <SolidColorBrush x:Key="TextSecondaryBrush"             Color="#FFB7C1CE" />
+    <SolidColorBrush x:Key="TextMutedBrush"                 Color="#FF939EAD" />
+    <SolidColorBrush x:Key="TextDisabledBrush"              Color="#FF6B7683" />
     <SolidColorBrush x:Key="TextOnAccentBrush"              Color="#FFFFFFFF" />
     <SolidColorBrush x:Key="EdgeIdleBrush"                  Color="#FF354152" />
     <SolidColorBrush x:Key="EdgeExpandedBrush"              Color="#FF354152" />

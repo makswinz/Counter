@@ -224,6 +224,29 @@ public sealed class LiquidGlassPanel : ContentControl
         set => SetValue(MaterialProperty, value);
     }
 
+    // ==================================================================== backdrop
+
+    public static readonly DependencyProperty HasBackdropProperty =
+        DependencyProperty.Register(
+            nameof(HasBackdrop), typeof(bool), typeof(LiquidGlassPanel),
+            new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender));
+
+    /// <summary>
+    /// Whether a compositor backdrop is currently blurring underneath this panel.
+    ///
+    /// It exists to settle an argument about shadows. Asking DWM to round the backdrop window is
+    /// the only thing on Windows 11 that will clip an acrylic blur to a curve, and DWM will not
+    /// round a window without also casting a shadow around it. So when the backdrop is there the
+    /// panel already has a shadow, drawn by the compositor, underneath the one it draws itself -
+    /// and two shadows around one edge is the dark halo that makes a translucent panel look like
+    /// it is leaking rather than floating. The panel gives up its own while that is true.
+    /// </summary>
+    public bool HasBackdrop
+    {
+        get => (bool)GetValue(HasBackdropProperty);
+        set => SetValue(HasBackdropProperty, value);
+    }
+
     static LiquidGlassPanel()
     {
         DefaultStyleKeyProperty.OverrideMetadata(

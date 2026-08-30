@@ -1,6 +1,8 @@
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Effects;
+using Counter.App.Controls;
 using Counter.Core.Models;
 
 namespace Counter.App.Services;
@@ -20,7 +22,16 @@ namespace Counter.App.Services;
 /// </summary>
 public sealed class BackdropHost : IDisposable
 {
-    private readonly record struct Surface(FrameworkElement Element, Func<CornerRadius> Radius);
+    /// <summary>
+    /// One glass surface, and the shadow it draws when nothing else is drawing one for it.
+    ///
+    /// The shadow is remembered rather than looked up, because giving it back has to be exact:
+    /// the notch shell carries its effect on the element itself and every other surface carries
+    /// it inside a template, and a surface that came back from a blur with the wrong shadow would
+    /// be a stranger bug than the one this is here to avoid.
+    /// </summary>
+    private readonly record struct Surface(
+        FrameworkElement Element, Func<CornerRadius> Radius, Effect? Shadow);
 
     private readonly List<Surface> _surfaces = new();
     private readonly Dictionary<FrameworkElement, AcrylicBackdrop> _backdrops = new();
@@ -52,7 +63,22 @@ public sealed class BackdropHost : IDisposable
 
     /// <summary>Adds one surface to keep a backdrop under. Called once, at construction.</summary>
     public void Register(FrameworkElement element, Func<CornerRadius> radius) =>
-        _surfaces.Add(new Surface(element, radius));
+        _surfaces.Add(new Surface(element, radius, element.Effect));
+
+    /// <summary>
+    /// Tells one surface whether the compositor is shadowing it, so that it stops shadowing
+    /// itself. See <see cref="LiquidGlassPanel.HasBackdrop"/> for why there is a choice to make.
+    /// </summary>
+    private static void Mark(Surface surface, bool backed)
+    {
+        if (surface.Element is LiquidGlassPanel panel)
+        {
+            panel.HasBackdrop = backed;
+            return;
+        }
+
+        surface.Element.Effect = backed ? null : surface.Shadow;
+    }
 
     /// <summary>Starts following a window. Safe to call before the window has a handle.</summary>
     public void Attach(Window owner)
@@ -112,7 +138,7 @@ public sealed class BackdropHost : IDisposable
     /// </summary>
     private static int TintFor(GlassMaterial material, bool isDark)
     {
-        var alpha = (byte)(material == GlassMaterial.Frosted ? 0x7A : 0x4D);
+        var alpha = (byte)(material == GlassMaterial.Frosted ? 0xB4 : 0x94);
 
         return isDark
             ? AcrylicBackdrop.Tint(alpha, 0x14, 0x17, 0x1C)
@@ -159,6 +185,7 @@ public sealed class BackdropHost : IDisposable
                     idle.Hide();
                 }
 
+                Mark(surface, false);
                 continue;
             }
 
@@ -187,6 +214,7 @@ public sealed class BackdropHost : IDisposable
             }
 
             backdrop.Place(_handle, rect, scaled, _dark, _tint);
+            Mark(surface, IsBlurred);
         }
 
         if (IsBlurred != was)
@@ -203,6 +231,13 @@ public sealed class BackdropHost : IDisposable
         }
 
         _backdrops.Clear();
+
+        // Every surface gets its own shadow back. Solid glass and a machine with transparency
+        // turned off both arrive here, and neither has a compositor casting anything for it.
+        foreach (var surface in _surfaces)
+        {
+            Mark(surface, false);
+        }
     }
 
     public void Dispose()

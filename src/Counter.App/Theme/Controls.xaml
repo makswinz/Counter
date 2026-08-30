@@ -406,6 +406,13 @@
                             </MultiTrigger.Conditions>
                             <Setter TargetName="Contour" Property="Effect" Value="{StaticResource LiquidPanelShadow}" />
                         </MultiTrigger>
+
+                        <!-- Last, so it wins over every elevation and every material: a panel
+                             with a compositor backdrop under it is already being shadowed by
+                             the compositor, and drawing a second one only deepens the halo. -->
+                        <Trigger Property="HasBackdrop" Value="True">
+                            <Setter TargetName="Contour" Property="Effect" Value="{x:Null}" />
+                        </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>

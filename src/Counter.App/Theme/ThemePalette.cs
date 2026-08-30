@@ -119,9 +119,13 @@ public static class ThemePalette
         ["BorderVisibleBrush"] = "#FF354152",
 
         ["TextPrimaryBrush"] = "#FFF4F7FA",
-        ["TextSecondaryBrush"] = "#FFAAB4C2",
-        ["TextMutedBrush"] = "#FF737F90",
-        ["TextDisabledBrush"] = "#FF4A5563",
+        // The quiet end of the ladder, solved for the surface it actually stands on rather
+        // than for a solid one. Even the densest glass here is translucent: a white wallpaper
+        // lifts the dark panel from near-black to a mid grey, and a muted tone chosen against
+        // near-black disappears at that point. See Ink and docs/DESIGN.md.
+        ["TextSecondaryBrush"] = "#FFB7C1CE",
+        ["TextMutedBrush"] = "#FF939EAD",
+        ["TextDisabledBrush"] = "#FF6B7683",
         ["TextOnAccentBrush"] = "#FFFFFFFF",
 
         ["EdgeIdleBrush"] = "#FF354152",
@@ -175,9 +179,11 @@ public static class ThemePalette
         ["BorderVisibleBrush"] = "#FFC7D1DD",
 
         ["TextPrimaryBrush"] = "#FF11151C",
-        ["TextSecondaryBrush"] = "#FF566273",
-        ["TextMutedBrush"] = "#FF8792A2",
-        ["TextDisabledBrush"] = "#FFB4BDC9",
+        // As in the dark set, and for the same reason: a black wallpaper drags the light
+        // panel down to a mid grey, and the muted tone has to clear it there.
+        ["TextSecondaryBrush"] = "#FF4E5A6B",
+        ["TextMutedBrush"] = "#FF6F7987",
+        ["TextDisabledBrush"] = "#FF99A3B0",
         ["TextOnAccentBrush"] = "#FFFFFFFF",
 
         // The outer edge has to stay visible against a white wallpaper, so light mode uses the
@@ -252,11 +258,13 @@ public static class ThemePalette
         // body, raised, deep, hover: the four glass densities, in the order the surfaces stack.
         var alphas = (frosted, blurred, isLight) switch
         {
-            // Frosted over acrylic. Thin, because the acrylic is already carrying a tint of
-            // its own: what is left for the glass to do is give the surface an edge and a
-            // little more body than the blur alone has.
-            (true, true, true) => new byte[] { 0x3D, 0x4A, 0x4A, 0x5C },
-            (true, true, false) => new byte[] { 0x38, 0x45, 0x45, 0x56 },
+            // Frosted over acrylic. Thinner than it is without one, because the acrylic is
+            // already carrying a tint of its own - but not as thin as the reference designs,
+            // and for a measured reason. A blur destroys detail; it does not change luminance.
+            // A white wallpaper blurred is still white, and text on a surface that is mostly
+            // white wallpaper is text nobody can read.
+            (true, true, true) => new byte[] { 0x73, 0x80, 0x80, 0x92 },
+            (true, true, false) => new byte[] { 0x86, 0x93, 0x93, 0xA4 },
 
             // Frosted over the bare desktop. Denser than it would like to be, because with
             // nothing blurring behind it the tint is the only thing standing between the user
@@ -265,9 +273,12 @@ public static class ThemePalette
             (true, false, true) => new byte[] { 0xD4, 0xDE, 0xDE, 0xE6 },
             (true, false, false) => new byte[] { 0xCE, 0xD8, 0xD8, 0xDA },
 
-            // Liquid over acrylic: almost nothing, which is the entire idea of it.
-            (false, true, true) => new byte[] { 0x14, 0x1F, 0x1F, 0x2E },
-            (false, true, false) => new byte[] { 0x12, 0x1C, 0x1C, 0x2B },
+            // Liquid over acrylic: the thinnest sheet in the application, and the one that
+            // had to give the most ground. It is still the material you can see the most
+            // through, which is the idea of it; it is no longer one you can read a browser
+            // through, which was never the idea of it.
+            (false, true, true) => new byte[] { 0x42, 0x4E, 0x4E, 0x60 },
+            (false, true, false) => new byte[] { 0x40, 0x4C, 0x4C, 0x5C },
 
             // Liquid over the bare desktop. Still the thinnest of the three, but the gap
             // between it and frosted is now carried by the edge rather than by transparency.
@@ -292,8 +303,12 @@ public static class ThemePalette
             // A pale wash over the body rather than instead of it: the reference's near-white
             // fill is the whole surface on a light page, and here it is the part of the surface
             // that catches the light. Liquid glass tints nothing at all, exactly as written.
+            // The pale wash frosted glass carries. Lighter in the dark theme than the
+            // reference asks for, because a white wash on a dark panel is the one layer that
+            // works directly against the ink standing on it: every point of it is a point of
+            // contrast taken from text that had none to spare.
             ["GlassTintBrush"] = frosted
-                ? (isLight ? "#2EFAFAFA" : "#1FFAFAFA")
+                ? (isLight ? "#2EFAFAFA" : "#12FAFAFA")
                 : "#00FFFFFF",
 
             ["RowGlassBrush"] = isLight ? (frosted ? "#5CFFFFFF" : "#4AFFFFFF") : (frosted ? "#12FFFFFF" : "#0EFFFFFF"),
@@ -305,23 +320,48 @@ public static class ThemePalette
             ["GlassHaloBrush"] = frosted ? "#00FFFFFF" : "#4DFFFFFF"
         };
 
-        // Quieter ink over a translucent panel is not quiet, it is gone: the contrast a muted
-        // tone was measured against was the solid surface, and there is no solid surface any
-        // more. Each step moves back toward the primary ink by roughly what the surface gave
-        // away, and the thinner material gives away more.
-        var ink = (frosted, isLight) switch
+        foreach (var (key, value) in Ink(material, isLight))
         {
-            (true, true) => new[] { "#FF44505F", "#FF6B7788", "#FF9AA5B2" },
-            (true, false) => new[] { "#FFC2CCD8", "#FF8E99A8", "#FF5D6875" },
-            (false, true) => new[] { "#FF35404E", "#FF57626F", "#FF8B96A3" },
-            _ => new[] { "#FFD2DBE5", "#FFA0AAB8", "#FF6C7784" }
-        };
-
-        map["TextSecondaryBrush"] = ink[0];
-        map["TextMutedBrush"] = ink[1];
-        map["TextDisabledBrush"] = ink[2];
+            map[key] = value;
+        }
 
         return map;
+    }
+
+    /// <summary>
+    /// The quiet end of the ink ladder, per material.
+    ///
+    /// Quieter ink over a translucent panel is not quiet, it is gone. The contrast a muted tone
+    /// was measured against was a solid surface, and there is no solid surface here: the panel
+    /// shows whatever is behind it, and what is behind it is a wallpaper nobody chose for its
+    /// legibility. So each step moves back toward the primary ink by roughly what the surface
+    /// gives away, and the thinner the material the further it moves.
+    ///
+    /// The numbers are not taste. They come from photographing the real window over a field of
+    /// saturated bands - pure white and pure black among them - measuring the worst surface
+    /// luminance each material actually produces, and solving for the ink that clears 4.5:1 for
+    /// text and 3:1 for the muted tone at that luminance. See docs/DESIGN.md.
+    /// </summary>
+    private static Dictionary<string, string> Ink(GlassMaterial material, bool isLight)
+    {
+        var ink = (material, isLight) switch
+        {
+            // Frosted: a pale wash over the blur, which costs the dark theme more than the
+            // light one because the wash and the ink are pulling the same direction there.
+            (GlassMaterial.Frosted, true) => new[] { "#FF44505F", "#FF6B7788", "#FF9AA5B2" },
+            (GlassMaterial.Frosted, false) => new[] { "#FFD2DAE6", "#FFADB7C5", "#FF7B8694" },
+
+            // Liquid: the thinnest, so the ladder is the most compressed.
+            (_, true) => new[] { "#FF35404E", "#FF57626F", "#FF8B96A3" },
+            _ => new[] { "#FFDEE5EC", "#FFB2BCC9", "#FF868F9C" }
+        };
+
+        return new Dictionary<string, string>
+        {
+            ["TextSecondaryBrush"] = ink[0],
+            ["TextMutedBrush"] = ink[1],
+            ["TextDisabledBrush"] = ink[2]
+        };
     }
 
     // ==================================================================== assembly

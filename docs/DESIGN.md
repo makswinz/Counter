@@ -312,12 +312,12 @@ it is a thinner sheet of the same glass.
 
 So the blur is put where a blur can exist. Each glass surface gets a small, ordinary, non-layered
 window sitting **directly beneath it** in the z-order, carrying the compositor's acrylic and
-clipped to the same rounded outline as the panel above it. The notch window is not touched at all -
+rounded to sit inside the outline of the panel above it. The notch window is not touched at all -
 not its transparency, not its hit testing, not its geometry - and the panel keeps drawing its tint,
 its rim and its ripple on top. What changes is only what those layers are drawn over.
 
 ```
-[ backdrop window ]   ordinary, non-layered, acrylic, region-clipped
+[ backdrop window ]   ordinary, non-layered, acrylic, rounded by DWM
         beneath
 [ notch window    ]   layered, unchanged
 ```
@@ -325,19 +325,31 @@ its rim and its ripple on top. What changes is only what those layers are drawn 
 Those windows cannot be clicked, cannot be focused, do not appear in the task switcher, and exist
 only while a translucent material is chosen. Choosing Solid destroys them rather than hiding them.
 
-Three details that took measuring rather than guessing:
+Five details that took measuring rather than guessing:
 
-- **The composition attribute, not `DWMWA_SYSTEMBACKDROP_TYPE`.** The documented Windows 11
-  attribute is the tidier API and does produce acrylic, but DWM composites that backdrop across the
-  whole window rectangle and does not clip it to the window region, which leaves a square corner of
-  blur sticking out past a rounded panel. The older accent policy blurs behind the window's own
-  region, so the outline is honoured.
+- **`SetWindowRgn` does not clip an acrylic blur.** It was assumed here that it did, and the
+  assumption held for as long as nobody had a blur to look at: with Windows transparency effects
+  turned off the compositor returns a flat colour and a flat colour has no corners. Turn the
+  setting on and a square corner of blur appears past every curve. Verified on build 26200 by
+  clipping a live backdrop to half its width and watching precisely nothing change.
+- **On Windows 11, DWM's own corner preference is the only thing that will.** `DWMWCP_ROUND`
+  clips the blur, at DWM's fixed eight-pixel radius rather than at the panel's. Windows 10 has no
+  corner preference and there the region does work, so the two are not a preference and a
+  fallback - they are two different operating systems, and the window uses whichever it is on.
+- **Which means the backdrop is drawn slightly inside the panel.** Two curves of different radii
+  laid over each other cross; nesting them is arithmetic. Circles nest when the distance between
+  their centres is at most the difference of their radii, the centres here sit on the diagonal, so
+  an inset of `(R - 8) x (1 - 1/root 2)` - about twenty-nine percent of the gap - is the least
+  that works. The top edge is the exception: the notch meets the bezel square, so when a panel is
+  already against the top of its monitor the backdrop is extended *above* the screen and DWM
+  rounds it where there is nothing to see.
+- **Rounding brings a shadow with it, and it is not optional.** DWM shadows a rounded window, so
+  the panel above gives up its own while a backdrop is under it (`LiquidGlassPanel.HasBackdrop`).
+  Two shadows around one edge is the dark halo that makes a translucent panel look like it is
+  leaking rather than floating.
 - **The acrylic tint cannot be near zero.** Below roughly six percent alpha the compositor stops
   producing a blur and hands back flat black. A tint of `0x10` looked like a triumph - panels that
   hid a wall of coloured text completely - and was in fact an opaque rectangle.
-- **The region is inset by one pixel.** The panel draws its own antialiased outline over that
-  boundary, so a backdrop stopping a pixel short is invisible while one overshooting by a pixel is
-  a bright nub outside the curve. Erring inward is free.
 
 #### Two density tables
 
@@ -349,14 +361,54 @@ browser with readable text in it sitting under the timer.
 | Panel body | With a blur | Without one |
 | --- | --- | --- |
 | Solid | 87 percent | 87 percent |
-| Frosted | 24 percent | 72 percent |
-| Liquid | 8 percent | 65 percent |
+| Frosted | 52 percent | 81 percent |
+| Liquid | 25 percent | 74 percent |
 
 The app moves between the two tables live, so turning the blur off repaints the glass rather than
 leaving it see-through. Two rules hold in both, and both are enforced by tests: each material lets
 strictly more through than the one before it, and without a blur none goes far enough for a
 sentence behind the glass to become legible. A translucent material is also given stronger ink -
 quiet text over a translucent panel is not quiet, it is gone.
+
+The blurred column is denser than the reference designs it is drawn from, and the reason is worth
+writing down: **a blur destroys detail, it does not change luminance.** A white wallpaper blurred
+is still white. A card on a web page can sit at eighteen percent because the page behind it is a
+page somebody designed; a panel floating over whatever wallpaper a user happens to have is not
+that, and the difference is the whole contrast section below.
+
+#### Contrast
+
+Every ink clears **4.5:1** against the surface it is drawn on, in both themes, on all three
+materials, over any wallpaper - except the muted tone, which clears **3:1**, the threshold for
+text that labels rather than states.
+
+That cannot be computed. The acrylic blend is the compositor's, not ours, and what reaches the
+glass is whatever happens to be behind the window. So it is photographed instead: the real window
+over a field of forty-pixel bands of saturated colour, pure white and pure black among them,
+sampled across the content area at every row, worst value kept. The worst surface each material
+actually produces:
+
+| | Solid | Frosted | Liquid |
+| --- | --- | --- | --- |
+| Dark | `#46494F` | `#5C5D61` | `#616267` |
+| Light | `#E6E7E7` | `#DEE2D9` | `#CED5C4` |
+
+and what the ink ladder gets on it:
+
+| | primary | secondary | muted |
+| --- | --- | --- | --- |
+| Dark, solid | 8.40 | 4.96 | 3.32 |
+| Dark, frosted | 6.12 | 4.67 | 3.24 |
+| Dark, liquid | 5.66 | 4.79 | 3.17 |
+| Light, solid | 14.77 | 5.65 | 3.56 |
+| Light, frosted | 13.93 | 6.25 | 3.46 |
+| Light, liquid | 12.14 | 6.99 | 4.12 |
+
+Getting there cost the quiet end of the ink ladder some of its quiet and the glass some of its
+transparency, in that order, because ink is cheaper than opacity: compressing a ladder loses
+hierarchy, and thickening glass loses the material. The numbers above are pinned by a test, so an
+ink cannot be quietened back without the failure being named. If the densities move, the surfaces
+move with them, and the way to find the new ones is to take the photograph again.
 
 #### When Windows will not blur
 

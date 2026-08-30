@@ -3,6 +3,32 @@
 All notable changes to Counter. The format follows [Keep a Changelog](https://keepachangelog.com),
 and versions follow [semantic versioning](https://semver.org).
 
+## [1.2.0] - 2026-08-30
+
+### Fixed
+
+- **The blur had square corners.** Every glass panel was drawing a rectangle of blurred desktop
+  that reached past its own rounded outline, most visibly as a grey nub sitting in clear air at
+  the bottom corners of the notch. The backdrop window was being clipped with `SetWindowRgn`,
+  which does not clip an acrylic blur at all - an assumption that survived because it can only be
+  tested on a machine where Windows transparency effects are switched on, and with them off the
+  compositor returns a flat colour that has no corners to get wrong. Windows 11 now uses DWM's own
+  corner rounding, with the backdrop drawn far enough inside the panel for the two curves to nest;
+  Windows 10 keeps the region, where it works.
+- **A dark halo around every translucent panel.** DWM shadows a window it rounds, so each panel
+  had two shadows: the compositor's and its own. Panels now give up their own while a backdrop is
+  under them.
+
+### Changed
+
+- **Every ink now clears 4.5:1 on every material, in both themes, over any wallpaper** - and the
+  muted tone clears 3:1, the threshold for text that labels rather than states. It did not before:
+  with a real blur behind it, dark frosted glass put primary text at 4.2:1 and muted text at
+  1.6:1, because a blur destroys detail without changing luminance and a white wallpaper blurred
+  is still white. The quiet end of the ink ladder was compressed and the two translucent materials
+  were thickened, in that order, because a lost step of hierarchy costs less than a lost material.
+  The full measurement, and the photographs it comes from, are in `docs/DESIGN.md`.
+
 ## [1.1.0] - 2026-08-29
 
 ### Fixed
