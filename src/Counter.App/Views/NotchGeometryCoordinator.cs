@@ -4,6 +4,7 @@ using System.Windows.Media;
 using Counter.App.Interop;
 using Counter.App.Services;
 using Counter.App.ViewModels;
+using Counter.Core.Models;
 
 namespace Counter.App.Views;
 
@@ -83,6 +84,9 @@ public sealed class NotchGeometryCoordinator : IDisposable
 
     /// <summary>Distance from the top of the monitor to the top of the shell. Stays fixed.</summary>
     public double TopOffset { get; set; }
+
+    /// <summary>Where the notch sits across the screen. Centre unless the user moved it.</summary>
+    public NotchPlacement Placement { get; set; } = NotchPlacement.Centre;
 
     /// <summary>Minimum shell width, so a narrow display still gets a usable notch.</summary>
     public double MinimumWidth { get; init; } = 240;
@@ -321,7 +325,7 @@ public sealed class NotchGeometryCoordinator : IDisposable
 
         var bounds = ComputeBounds(
             _monitor(), shell, TopOffset, ShadowSide, ShadowBottom,
-            MinimumWidth, MonitorSideMargin, MaxShellWidth);
+            MinimumWidth, MonitorSideMargin, MaxShellWidth, Placement);
 
         if (bounds.X == _lastX && bounds.Y == _lastY
             && bounds.Width == _lastW && bounds.Height == _lastH)
@@ -371,7 +375,8 @@ public sealed class NotchGeometryCoordinator : IDisposable
         double shadowBottom,
         double minimumWidth = 240,
         double monitorSideMargin = 24,
-        double maxShellWidth = 600)
+        double maxShellWidth = 600,
+        NotchPlacement placement = NotchPlacement.Centre)
     {
         var scale = monitor.Scale <= 0 ? 1d : monitor.Scale;
 
@@ -387,11 +392,43 @@ public sealed class NotchGeometryCoordinator : IDisposable
         var physicalWidth = (int)Math.Round((windowShellWidth + 2 * shadowSide) * scale, MidpointRounding.AwayFromZero);
         var physicalHeight = (int)Math.Round((height + shadowBottom) * scale, MidpointRounding.AwayFromZero);
 
-        var centre = monitor.Left + monitor.Width / 2d;
-        var x = (int)Math.Round(centre - physicalWidth / 2d, MidpointRounding.AwayFromZero);
+        var x = HorizontalOrigin(monitor, physicalWidth, monitorSideMargin, scale, placement);
         var y = monitor.Top + (int)Math.Round(topOffset * scale, MidpointRounding.AwayFromZero);
 
         return new NativeBounds(x, y, physicalWidth, physicalHeight);
+    }
+
+    /// <summary>
+    /// Where the window's left edge lands, in monitor pixels.
+    ///
+    /// Centre rounds rather than truncating, which is what stops the shell sliding half a pixel
+    /// sideways as its width animates. The two side placements are clamped into the monitor
+    /// rather than assumed to fit: a narrow display can be smaller than the margin plus the
+    /// window, and a window placed off the edge of the screen is worse than a badly placed one.
+    /// </summary>
+    public static int HorizontalOrigin(
+        MonitorInfo monitor,
+        int physicalWidth,
+        double monitorSideMargin,
+        double scale,
+        NotchPlacement placement)
+    {
+        var margin = (int)Math.Round(monitorSideMargin / 2d * scale, MidpointRounding.AwayFromZero);
+        var slack = monitor.Width - physicalWidth;
+
+        if (slack <= 0)
+        {
+            return monitor.Left;
+        }
+
+        var offset = placement switch
+        {
+            NotchPlacement.Left => Math.Min(margin, slack),
+            NotchPlacement.Right => Math.Max(0, slack - margin),
+            _ => (int)Math.Round(slack / 2d, MidpointRounding.AwayFromZero)
+        };
+
+        return monitor.Left + Math.Clamp(offset, 0, slack);
     }
 
     /// <summary>The widest shell this monitor can show, after clamping.</summary>

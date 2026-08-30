@@ -38,15 +38,17 @@ public static class StatisticsCalculator
         // only contributes the part that falls inside it.
         var spans = ClipToWindow(allSpans, window, zone);
 
+        // Negatives are kept: a removal is a correction to a total, and dropping it here would
+        // let the statistics disagree with the task row the user just corrected.
         var manual = snapshot.ManualEntries
-            .Where(entry => entry.Seconds > 0 && window.Contains(entry.LocalDate))
+            .Where(entry => entry.Seconds != 0 && window.Contains(entry.LocalDate))
             .ToList();
 
         var focusByDay = TimeLedger.SecondsByLocalDay(spans, zone);
         var manualByDay = TimeLedger.ManualSecondsByLocalDay(manual);
 
         var focusSeconds = TimeLedger.TotalSeconds(spans);
-        var manualSeconds = manual.Sum(entry => entry.Seconds);
+        var manualSeconds = Math.Max(0, manual.Sum(entry => entry.Seconds));
 
         var tasksCompleted = snapshot.Tasks.Count(
             task => task is { IsCompleted: true, IsDeleted: false }

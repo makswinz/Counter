@@ -60,6 +60,49 @@ public sealed partial class AccentSwatchViewModel : ObservableObject
     public IRelayCommand SelectCommand { get; }
 }
 
+/// <summary>
+/// One global shortcut, as the settings panel shows it.
+///
+/// A global shortcut outranks every application shortcut on the machine, so being able to turn
+/// one off is not a nicety. Whatever gesture ships as a default will collide with something
+/// somebody uses.
+/// </summary>
+public sealed partial class ShortcutViewModel : ObservableObject
+{
+    public ShortcutViewModel(string id, string description, string gesture, string fallback)
+    {
+        Id = id;
+        Description = description;
+        Fallback = fallback;
+        _gesture = gesture;
+    }
+
+    public string Id { get; }
+
+    public string Description { get; }
+
+    /// <summary>What it goes back to when it is switched on again.</summary>
+    public string Fallback { get; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsEnabled))]
+    [NotifyPropertyChangedFor(nameof(GestureText))]
+    private string _gesture;
+
+    /// <summary>An empty gesture is how a shortcut is turned off.</summary>
+    public bool IsEnabled => !string.IsNullOrWhiteSpace(Gesture);
+
+    public string GestureText => IsEnabled ? Gesture : "off";
+
+    public string AccessibleName => Description + ", " + GestureText;
+
+    /// <summary>Set by the shell so a row can ask without holding a back-pointer.</summary>
+    public Action<ShortcutViewModel>? ToggleRequested { get; set; }
+
+    [RelayCommand]
+    private void Toggle() => ToggleRequested?.Invoke(this);
+}
+
 /// <summary>One display the notch can be anchored to.</summary>
 public sealed partial class MonitorOptionViewModel : ObservableObject
 {
@@ -288,6 +331,79 @@ public sealed partial class ShellViewModel
     /// <summary>The six-digit form, which is what a person reads and writes.</summary>
     private static string Shorten(string hex) =>
         hex.Length == 9 && hex.StartsWith('#') ? "#" + hex.Substring(3) : hex;
+
+    // =================================================================================
+    // Shortcuts
+    // =================================================================================
+
+    public ObservableCollection<ShortcutViewModel> Shortcuts { get; } = new();
+
+    /// <summary>Raised when a shortcut is switched on or off. The host re-registers and reports back.</summary>
+    public event Action<string, string>? ShortcutRequested;
+
+    /// <summary>Called by the host once the shortcuts have actually been registered.</summary>
+    public void ReportShortcuts(IReadOnlyList<ShortcutViewModel> rows)
+    {
+        Shortcuts.Clear();
+
+        foreach (var row in rows)
+        {
+            row.ToggleRequested = shortcut => ShortcutRequested?.Invoke(
+                shortcut.Id, shortcut.IsEnabled ? string.Empty : shortcut.Fallback);
+
+            Shortcuts.Add(row);
+        }
+    }
+
+    // =================================================================================
+    // Getting out of the way
+    // =================================================================================
+
+    /// <summary>
+    /// Whether the notch is put away entirely.
+    ///
+    /// It lives at the top centre of the screen, which is where a browser keeps its tabs. There
+    /// has to be something faster than quitting.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isHidden;
+
+    /// <summary>Raised when the user asks for it to go away. The tray brings it back.</summary>
+    public event Action? HideRequested;
+
+    /// <summary>Where the notch sits across the screen.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsPlacedLeft))]
+    [NotifyPropertyChangedFor(nameof(IsPlacedCentre))]
+    [NotifyPropertyChangedFor(nameof(IsPlacedRight))]
+    private NotchPlacement _placement = NotchPlacements.Default;
+
+    public bool IsPlacedLeft => Placement == NotchPlacement.Left;
+
+    public bool IsPlacedCentre => Placement == NotchPlacement.Centre;
+
+    public bool IsPlacedRight => Placement == NotchPlacement.Right;
+
+    /// <summary>Raised when the user moves it. The host applies it and reports back.</summary>
+    public event Action<NotchPlacement>? PlacementRequested;
+
+    [RelayCommand]
+    private void PlaceLeft() => PlacementRequested?.Invoke(NotchPlacement.Left);
+
+    [RelayCommand]
+    private void PlaceCentre() => PlacementRequested?.Invoke(NotchPlacement.Centre);
+
+    [RelayCommand]
+    private void PlaceRight() => PlacementRequested?.Invoke(NotchPlacement.Right);
+
+    /// <summary>Called by the host once it has actually moved.</summary>
+    public void ReportPlacement(NotchPlacement placement) => Placement = placement;
+
+    [RelayCommand]
+    private void Hide() => HideRequested?.Invoke();
+
+    /// <summary>Called by the host once it has actually been hidden or shown.</summary>
+    public void ReportHidden(bool hidden) => IsHidden = hidden;
 
     // =================================================================================
     // Behaviour

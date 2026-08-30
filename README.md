@@ -15,7 +15,7 @@
   <a href="https://github.com/makswinz/Counter/releases/latest"><img src="https://img.shields.io/github/downloads/makswinz/Counter/total?color=FF7217" alt="Downloads"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT licence"></a>
   <img src="https://img.shields.io/badge/windows-10%20%7C%2011-0078D4.svg" alt="Windows 10 and 11">
-  <img src="https://img.shields.io/badge/tests-683-2ea44f.svg" alt="683 tests">
+  <img src="https://img.shields.io/badge/tests-711-2ea44f.svg" alt="683 tests">
 </p>
 
 <p align="center">
@@ -43,7 +43,8 @@ full planner with a calendar and a duration picker, then a statistics surface.
 | **Statistics that say something** | Not just how much, but how it was spread: time per task, time per day you actually worked, your best day, your busiest weekday, the day you finished the most, and your longest unbroken run. |
 | **Any accent colour you like** | Pick a colour and the whole palette is derived from it in OKLCH: five lit gradient stops, the contour, the halo, the tint, and a foreground chosen by measuring contrast rather than by guessing. Six presets, or mix your own. |
 | **Real glass** | Three materials. The two translucent ones are backed by a genuine compositor blur, which on a layered window takes some doing. |
-| **Never in the way** | The window never changes width, so opening a panel cannot make anything jump sideways. Everything outside the card passes clicks straight through to what is underneath. |
+| **Never in the way** | The window never changes width, so opening a panel cannot make anything jump sideways. Everything outside the card passes clicks straight through. Move it left or right when it sits over your browser tabs, or hide it entirely with Ctrl+Alt+C and bring it back from the tray. |
+| **Shortcuts you control** | Four global shortcuts, all on Ctrl+Alt, and every one of them can be switched off. A global hotkey outranks every application on the machine, so it should never be something you cannot take back. |
 | **Yours** | Local SQLite. No account, no cloud service, no subscription, no API key, no telemetry, no network calls at all. Rotating local backups, and CSV export whenever you want out. |
 
 <p align="center">
@@ -437,7 +438,7 @@ compositor work behind them, the icon system, the window geometry, and the stora
 ```
 src/Counter.Core    no Windows dependencies: the timer, the journey, statistics, colour
 src/Counter.App     WPF, the one window, the controls, the theme
-tests/Counter.Tests xUnit, 683 tests, no sleeping anywhere
+tests/Counter.Tests xUnit, 711 tests, no sleeping anywhere
 ```
 
 ## Contributing

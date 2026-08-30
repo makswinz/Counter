@@ -66,9 +66,9 @@ public sealed class SqliteActivityReader : IActivityReader, ITaskTimeReader
         """;
 
     private const string ManualTotalsSql = """
-        SELECT TaskId, COALESCE(SUM(Seconds), 0)
+        SELECT TaskId, MAX(COALESCE(SUM(Seconds), 0), 0)
           FROM ManualTimeEntries
-         WHERE TaskId IS NOT NULL AND Seconds > 0
+         WHERE TaskId IS NOT NULL AND Seconds <> 0
          GROUP BY TaskId;
         """;
 

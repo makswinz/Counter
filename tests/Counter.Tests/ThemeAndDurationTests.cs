@@ -87,6 +87,7 @@ public class ThemeTests
         declared.Add(GlassNoise.RippleKey);
         declared.Add(ThemeService.EdgeReflectionKey);
         declared.Add(ThemeService.TopSheenKey);
+        declared.Add(ThemeService.RefractionKey);
         declared.Add("TopHighlightBrush");
         declared.Add("GlossOverlayBrush");
         declared.Add("SpecularHighlightBrush");

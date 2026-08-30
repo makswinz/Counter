@@ -37,6 +37,7 @@ public partial class App : Application
     private NotchWindow? _window;
     private TrayIconService? _tray;
     private HotkeyService? _hotkeys;
+    private bool _hidden;
     private ChimePlayer? _chime;
     private DispatcherTimer? _tick;
     private bool _soundEnabled = true;
@@ -298,6 +299,47 @@ public partial class App : Application
         _shell.ReportAccent(_theme.Accent.Id);
         _shell.ReportGlass(_theme.Material);
 
+        _shell.HideRequested += () => SetHidden(true);
+
+        _shell.PlacementRequested += placement =>
+        {
+            _settings!.Set(SettingKeys.HorizontalPlacement, placement.ToString());
+            _window!.SetPlacement(placement);
+            _shell!.ReportPlacement(placement);
+        };
+
+        // Straight to the page that governs it. Telling somebody a setting exists and making
+        // them find it are two different amounts of help.
+        _shell.TransparencySettingRequested += () =>
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(
+                    new System.Diagnostics.ProcessStartInfo("ms-settings:colors") { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("Could not open the Windows colour settings.", ex);
+                _shell?.ReportError("Could not open Windows Settings. Look for Personalisation, Colours.");
+            }
+        };
+
+        // Switching a shortcut off stores an empty gesture, which is what tells the service to
+        // register nothing at all. Everything is rebuilt rather than patched, so the registered
+        // set and the list on screen cannot drift apart.
+        _shell.ShortcutRequested += (id, gesture) =>
+        {
+            _settings!.Set(id, gesture);
+            BuildHotkeys();
+        };
+
+        // Restored last, and only after the window exists: starting hidden is a state the user
+        // chose, and forgetting it means the notch reappears over their tabs on every restart.
+        if (_settings.GetBool(SettingKeys.Hidden, false))
+        {
+            SetHidden(true);
+        }
+
         // The setting can be changed from either the statistics panel or the tray, so the tray
         // follows the view model rather than the two keeping separate copies.
         _shell.PropertyChanged += (_, args) =>
@@ -338,6 +380,10 @@ public partial class App : Application
 
         _window.SyncBackdrop(_theme!.Material, _theme.IsLight);
         _shell.ReportGlassBlur(_window.Backdrop.BlurRefused);
+
+        var placement = NotchPlacements.Parse(_settings.Get(SettingKeys.HorizontalPlacement));
+        _window.SetPlacement(placement);
+        _shell.ReportPlacement(placement);
 
         Log.Info("Glass backdrop: " + AcrylicBackdrop.Method + ".");
 
@@ -548,6 +594,7 @@ public partial class App : Application
         };
         _tray.ThemeChanged += ApplyTheme;
         _tray.AccentChanged += ApplyAccent;
+        _tray.HiddenToggled += ToggleHidden;
         _tray.SettingsRequested += () =>
         {
             RevealWindow();
@@ -584,47 +631,79 @@ public partial class App : Application
         _tray.UpdateFocusState(_engine!.HasActiveSession, _engine.Current?.Status == FocusSessionStatus.Running);
     }
 
+    /// <summary>
+    /// The shortcuts, and what they default to when nothing has been stored.
+    ///
+    /// <para>
+    /// Ctrl+Alt rather than Ctrl+Shift, and that is a bug fix rather than a preference. A global
+    /// hotkey outranks every application shortcut on the machine, and Ctrl+Shift is where
+    /// applications keep their own: Ctrl+Shift+N is a private window in every browser there is,
+    /// Ctrl+Shift+S is Save As, Ctrl+Shift+F is find-in-files in most editors. Registering those
+    /// does not fail and does not warn - it silently takes them away from every other program,
+    /// which is precisely what happened.
+    /// </para>
+    /// </summary>
+    public static readonly (string Id, string Default, string Description)[] HotkeyDefaults =
+    {
+        (HotkeyToggleFocus, "Ctrl+Alt+Space", "Start or pause focus"),
+        (HotkeyNewTask, "Ctrl+Alt+N", "New task"),
+        (HotkeyReveal, "Ctrl+Alt+C", "Show or hide Counter"),
+        (HotkeyStatistics, "Ctrl+Alt+S", "Statistics")
+    };
+
+    /// <summary>The stored gesture, the default, or empty when the user turned it off.</summary>
+    private string GestureFor(string id, string fallback)
+    {
+        var stored = _settings!.Get(id);
+
+        if (stored is null)
+        {
+            return fallback;
+        }
+
+        // Stored-but-empty is off. Distinguishing that from never-stored is the whole reason
+        // this reads the raw value rather than using the null-coalescing default.
+        return stored.Trim();
+    }
+
     private void BuildHotkeys()
     {
+        _hotkeys?.Dispose();
         _hotkeys = new HotkeyService();
 
-        var definitions = new[]
+        var actions = new Dictionary<string, Action>
         {
-            new HotkeyDefinition(
-                HotkeyToggleFocus,
-                _settings!.Get(HotkeyToggleFocus) ?? "Ctrl+Shift+Space",
-                "Start or pause focus",
-                () => _shell!.ToggleFocus()),
-            new HotkeyDefinition(
-                HotkeyNewTask,
-                _settings.Get(HotkeyNewTask) ?? "Ctrl+Shift+N",
-                "New task",
-                () =>
-                {
-                    RevealWindow();
-                    _shell!.BeginAddTask();
-                }),
-            new HotkeyDefinition(
-                HotkeyReveal,
-                _settings.Get(HotkeyReveal) ?? "Ctrl+Shift+F",
-                "Reveal or collapse Counter",
-                () =>
-                {
-                    RevealWindow();
-                    _shell!.ToggleQuickView();
-                }),
-            new HotkeyDefinition(
-                HotkeyStatistics,
-                _settings.Get(HotkeyStatistics) ?? "Ctrl+Shift+S",
-                "Statistics",
-                () =>
-                {
-                    RevealWindow();
-                    _shell!.OpenStatistics();
-                })
+            [HotkeyToggleFocus] = () => _shell!.ToggleFocus(),
+            [HotkeyNewTask] = () =>
+            {
+                RevealWindow();
+                _shell!.BeginAddTask();
+            },
+            [HotkeyReveal] = ToggleHidden,
+            [HotkeyStatistics] = () =>
+            {
+                RevealWindow();
+                _shell!.OpenStatistics();
+            }
         };
 
+        var definitions = HotkeyDefaults
+            .Select(entry => new HotkeyDefinition(
+                entry.Id,
+                GestureFor(entry.Id, entry.Default),
+                entry.Description,
+                actions[entry.Id]))
+            .ToArray();
+
         _hotkeys.Register(definitions);
+
+        _shell!.ReportShortcuts(HotkeyDefaults
+            .Select(entry => new ShortcutViewModel(
+                entry.Id,
+                entry.Description,
+                GestureFor(entry.Id, entry.Default),
+                entry.Default))
+            .ToList());
 
         if (_hotkeys.HasConflicts)
         {
@@ -753,9 +832,45 @@ public partial class App : Application
             return;
         }
 
+        SetHidden(false);
         _window.Reveal();
         _shell?.OpenQuickView();
     }
+
+    /// <summary>
+    /// Puts the notch away, or brings it back.
+    ///
+    /// It sits at the top centre of the screen, which is exactly where a browser keeps its tabs,
+    /// so there has to be a way to get it out of the way that is faster than quitting. Hidden is
+    /// a real state rather than a collapse: the window is not shown at all, the timer keeps
+    /// running, and the tray icon is how it comes back.
+    /// </summary>
+    private void SetHidden(bool hidden)
+    {
+        if (_window is null || _hidden == hidden)
+        {
+            return;
+        }
+
+        _hidden = hidden;
+
+        if (hidden)
+        {
+            _shell?.Collapse();
+            _window.Hide();
+        }
+        else
+        {
+            _window.Show();
+            _window.Reveal();
+        }
+
+        _settings?.SetBool(SettingKeys.Hidden, hidden);
+        _tray?.SetHidden(hidden);
+        _shell?.ReportHidden(hidden);
+    }
+
+    private void ToggleHidden() => SetHidden(!_hidden);
 
     // =================================================================================
     // Shutdown

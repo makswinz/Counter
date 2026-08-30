@@ -35,6 +35,16 @@ public sealed class HotkeyService : IDisposable
 
         foreach (var definition in definitions)
         {
+            // An empty gesture is how a shortcut is turned off. Nothing is registered and nothing
+            // is reported as a conflict, because deliberately having no shortcut is not a
+            // failure to get one.
+            if (string.IsNullOrWhiteSpace(definition.Gesture))
+            {
+                _registrations.Add(new HotkeyRegistration(
+                    definition.Id, string.Empty, definition.Description, true));
+                continue;
+            }
+
             var parsed = ParseGesture(definition.Gesture);
             if (parsed is null)
             {

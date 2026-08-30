@@ -52,6 +52,7 @@ public class GlassMaterialTests
     [InlineData("   ")]
     [InlineData("marble")]
     [InlineData("7")]
+    [InlineData("2")]
     public void An_unreadable_material_falls_back_rather_than_throwing(string? stored)
     {
         // A number would otherwise parse straight through Enum.TryParse into a member that does

@@ -65,6 +65,11 @@
          the reference's 4px blur with 2px of spread; wide and thin for liquid, which is its
          12px blur pulled back by 4. -->
     <BlurEffect x:Key="RimBlurTight" Radius="5" KernelType="Gaussian" />
+
+    <!-- Wide and soft: the band is meant to be felt across several pixels rather than seen as a
+         line, which is the difference between an edge that reads as thick and one that reads as
+         drawn on. -->
+    <BlurEffect x:Key="RefractionBlur" Radius="9" KernelType="Gaussian" />
     <BlurEffect x:Key="RimBlurSoft" Radius="14" KernelType="Gaussian" />
     <BlurEffect x:Key="HaloBlur" Radius="12" KernelType="Gaussian" />
 
@@ -149,8 +154,8 @@
             specular      the highlight where the light actually lands
             ripple        the slow unevenness of a pour                         liquid only
             inner edge    a fainter second line, which is what reads as thickness
+            refraction    the band where a thick edge bends what passes through it
             rim           a blurred stroke inside the clip: light held in the edge
-            grain         two percent of monochrome noise, so the surface is not flat
             content
 
         Three materials share the stack and differ only in which layers are lit, because the
@@ -268,6 +273,30 @@
                                             IsHitTestVisible="False"
                                             SnapsToDevicePixels="True" />
 
+                                    <!--
+                                        The refraction band.
+
+                                        A thick edge of glass does not simply end: it bends what
+                                        passes through it, so the last few millimetres before the
+                                        boundary are brighter on the side the light comes from and
+                                        deeper on the side it leaves. That is the cue the eye
+                                        reads as thickness, and it is why a flat tinted rectangle
+                                        never looks like glass however transparent it is.
+
+                                        A wide blurred stroke inside the clip, running along the
+                                        same upper-left light as everything else. It is drawn
+                                        under the rim so the two stack the way a real edge does:
+                                        the band is the body of the glass, the rim is the
+                                        highlight on its very lip.
+                                    -->
+                                    <Border x:Name="Refraction"
+                                            BorderBrush="{DynamicResource GlassRefractionBrush}"
+                                            BorderThickness="7"
+                                            CornerRadius="{Binding CornerRadius, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource InsetRadius}, ConverterParameter=1}"
+                                            Opacity="0"
+                                            IsHitTestVisible="False"
+                                            Effect="{StaticResource RefractionBlur}" />
+
                                     <!-- The inset glow. A blurred stroke drawn inside a clipped
                                          body, which is what an inset box-shadow actually is: the
                                          outer half of the blur is cut away by the clip and the
@@ -280,10 +309,6 @@
                                             Opacity="0"
                                             IsHitTestVisible="False"
                                             Effect="{StaticResource RimBlurTight}" />
-
-                                    <Rectangle x:Name="Grain"
-                                               Fill="{DynamicResource GlassNoiseBrush}"
-                                               IsHitTestVisible="False" />
 
                                     <ContentPresenter Margin="{TemplateBinding Padding}"
                                                       HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
@@ -312,6 +337,7 @@
                             boundary in place of a hard second line.
                         -->
                         <Trigger Property="Material" Value="Frosted">
+                            <Setter TargetName="Refraction" Property="Opacity" Value="1" />
                             <Setter TargetName="EdgeReflection" Property="Opacity" Value="1" />
                             <Setter TargetName="TopSheen" Property="Opacity" Value="1" />
                             <Setter TargetName="Rim" Property="Opacity" Value="1" />
@@ -327,6 +353,8 @@
                             soft light inside the edge, the ripple, and a halo outside.
                         -->
                         <Trigger Property="Material" Value="Liquid">
+                            <Setter TargetName="Refraction" Property="Opacity" Value="1" />
+                            <Setter TargetName="Refraction" Property="BorderThickness" Value="10" />
                             <Setter TargetName="Rim" Property="Opacity" Value="1" />
                             <Setter TargetName="Rim" Property="BorderThickness" Value="1" />
                             <Setter TargetName="Rim" Property="Margin" Value="3" />

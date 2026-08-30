@@ -68,6 +68,12 @@ public sealed class ThemeService : IDisposable
     public const string TopSheenKey = "GlassTopSheenBrush";
 
     /// <summary>
+    /// The band where a thick edge bends what passes through it: bright where the light enters,
+    /// deep where it leaves. Directional, so it is built rather than declared.
+    /// </summary>
+    public const string RefractionKey = "GlassRefractionBrush";
+
+    /// <summary>
     /// The chosen material, published as a resource so the panel template can switch its layers
     /// on it. A value rather than a brush, and the one entry in the dictionary that is not paint.
     /// </summary>
@@ -230,6 +236,7 @@ public sealed class ThemeService : IDisposable
         Replace(InnerContourKey, () => BuildInnerContour(IsLight), ref applied, ref missing);
         Replace(EdgeReflectionKey, BuildEdgeReflection, ref applied, ref missing);
         Replace(TopSheenKey, BuildTopSheen, ref applied, ref missing);
+        Replace(RefractionKey, () => BuildRefraction(IsLight), ref applied, ref missing);
 
         Diag.Write("theme", "applied", ("preference", Preference), ("light", IsLight),
             ("accent", Accent.Id), ("glass", Material), ("blurred", Blurred),
@@ -279,6 +286,41 @@ public sealed class ThemeService : IDisposable
 
         brush.GradientStops.Add(new GradientStop(Color.FromArgb(0x3A, 0xFF, 0xFF, 0xFF), 0.00));
         brush.GradientStops.Add(new GradientStop(Color.FromArgb(0x00, 0xFF, 0xFF, 0xFF), 0.50));
+        brush.Freeze();
+        return brush;
+    }
+
+    /// <summary>
+    /// The refraction band.
+    ///
+    /// A thick edge of glass does not simply stop. Light entering the near side is bent and piles
+    /// up just inside the boundary; light leaving the far side is bent away and the edge goes
+    /// deep. That gradient across the band is what the eye reads as thickness, and it is the one
+    /// cue a flat tinted rectangle can never fake however transparent it is.
+    ///
+    /// It runs along the same upper-left source as every other gradient in the application, so
+    /// the two ends of the band agree with the shadow the panel throws.
+    /// </summary>
+    public static LinearGradientBrush BuildRefraction(bool isLight)
+    {
+        var brush = new LinearGradientBrush
+        {
+            StartPoint = GradientStart,
+            EndPoint = GradientEnd,
+            MappingMode = BrushMappingMode.RelativeToBoundingBox
+        };
+
+        // On a light surface the far edge deepens with shadow; on a dark one it would only turn
+        // to mud, so it darkens far less and the near edge carries more of the effect.
+        var near = isLight ? (byte)0x8C : (byte)0x66;
+        var far = isLight ? (byte)0x3D : (byte)0x59;
+
+        brush.GradientStops.Add(new GradientStop(Color.FromArgb(near, 0xFF, 0xFF, 0xFF), 0.00));
+        brush.GradientStops.Add(new GradientStop(Color.FromArgb((byte)(near / 3), 0xFF, 0xFF, 0xFF), 0.34));
+        brush.GradientStops.Add(new GradientStop(Color.FromArgb(0x00, 0xFF, 0xFF, 0xFF), 0.52));
+        brush.GradientStops.Add(new GradientStop(Color.FromArgb((byte)(far / 2), 0x00, 0x00, 0x00), 0.74));
+        brush.GradientStops.Add(new GradientStop(Color.FromArgb(far, 0x00, 0x00, 0x00), 1.00));
+
         brush.Freeze();
         return brush;
     }

@@ -264,6 +264,16 @@
         <GradientStop Color="#00FFFFFF" Offset="0.5" />
     </LinearGradientBrush>
 
+    <!-- The band where a thick edge bends what passes through it. Rebuilt by the theme service;
+         this is the shape, so the dictionary declares the right kind. -->
+    <LinearGradientBrush x:Key="GlassRefractionBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#66FFFFFF" Offset="0" />
+        <GradientStop Color="#22FFFFFF" Offset="0.34" />
+        <GradientStop Color="#00FFFFFF" Offset="0.52" />
+        <GradientStop Color="#2C000000" Offset="0.74" />
+        <GradientStop Color="#59000000" Offset="1" />
+    </LinearGradientBrush>
+
     <LinearGradientBrush x:Key="GlassTopSheenBrush" StartPoint="0,0" EndPoint="0,1">
         <GradientStop Color="#23FFFFFF" Offset="0" />
         <GradientStop Color="#00FFFFFF" Offset="1" />

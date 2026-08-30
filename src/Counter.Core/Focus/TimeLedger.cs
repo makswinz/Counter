@@ -192,9 +192,11 @@ public static class TimeLedger
     {
         var totals = new Dictionary<DateOnly, long>();
 
+        // Signed. A negative entry is a correction - a timer left running over lunch - and it
+        // has to come off the day it names, or correcting a mistake would do nothing at all.
         foreach (var entry in entries)
         {
-            if (entry.Seconds <= 0)
+            if (entry.Seconds == 0)
             {
                 continue;
             }
@@ -204,23 +206,45 @@ public static class TimeLedger
                 : entry.Seconds;
         }
 
+        Floor(totals);
+
         return totals;
     }
 
     /// <summary>Manual seconds per task, so a task total can include hand-entered work once.</summary>
+    /// <summary>
+    /// Takes any negative total up to zero.
+    ///
+    /// Removals are allowed to exceed what a day or a task holds, because the user is correcting
+    /// a total rather than deleting a particular record. What comes out the other side is still
+    /// an amount of time, and time spent is never less than none.
+    /// </summary>
+    private static void Floor<TKey>(Dictionary<TKey, long> totals) where TKey : notnull
+    {
+        foreach (var key in totals.Keys.ToList())
+        {
+            if (totals[key] < 0)
+            {
+                totals[key] = 0;
+            }
+        }
+    }
+
     public static IReadOnlyDictionary<Guid, long> ManualSecondsByTask(IEnumerable<ManualTimeEntry> entries)
     {
         var totals = new Dictionary<Guid, long>();
 
         foreach (var entry in entries)
         {
-            if (entry.Seconds <= 0 || entry.TaskId is not { } taskId)
+            if (entry.Seconds == 0 || entry.TaskId is not { } taskId)
             {
                 continue;
             }
 
             totals[taskId] = totals.TryGetValue(taskId, out var existing) ? existing + entry.Seconds : entry.Seconds;
         }
+
+        Floor(totals);
 
         return totals;
     }

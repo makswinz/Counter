@@ -361,7 +361,7 @@ public class GlassTests
             "x:Name=\"Reflection\"",
             "x:Name=\"Sheen\"",
             "GlassInnerContourBrush",
-            "GlassNoiseBrush",
+            "GlassRefractionBrush",
             "<ContentPresenter",
             "x:Name=\"Accent\""
         };

@@ -48,11 +48,22 @@ public static class GlassMaterials
     /// Resolves a stored value. Anything unrecognised falls back rather than throwing: a bad
     /// preference is never a reason to refuse to draw the interface.
     /// </summary>
-    public static GlassMaterial Parse(string? value) =>
-        Enum.TryParse<GlassMaterial>((value ?? string.Empty).Trim(), ignoreCase: true, out var parsed)
-        && All.Contains(parsed)
-            ? parsed
-            : Default;
+    public static GlassMaterial Parse(string? value)
+    {
+        var text = (value ?? string.Empty).Trim();
+
+        // By name only. Enum.TryParse also accepts the underlying number, and a stored "2"
+        // meaning Liquid is a surprise nobody asked for.
+        foreach (var material in All)
+        {
+            if (string.Equals(material.ToString(), text, StringComparison.OrdinalIgnoreCase))
+            {
+                return material;
+            }
+        }
+
+        return Default;
+    }
 
     /// <summary>What the settings panel calls it.</summary>
     public static string DisplayName(GlassMaterial material) => material switch

@@ -29,6 +29,13 @@ public sealed class TrayIconService : IDisposable
     private readonly ToolStripMenuItem _stopItem;
     private readonly ToolStripMenuItem _newTaskItem;
     private readonly ToolStripMenuItem _accentCustomItem = new("Custom colour...");
+
+    /// <summary>
+    /// Putting the notch away and getting it back. The tray is the only route back once it is
+    /// hidden, so this entry has to be here rather than only on a shortcut somebody may have
+    /// turned off.
+    /// </summary>
+    private readonly ToolStripMenuItem _hideItem = new("Hide Counter");
     private readonly ToolStripMenuItem _statisticsItem;
     private readonly ToolStripMenuItem _settingsItem;
     private readonly ToolStripMenuItem _themeItem;
@@ -75,6 +82,7 @@ public sealed class TrayIconService : IDisposable
         _quitItem = new ToolStripMenuItem("Quit");
 
         _openItem.Click += (_, _) => Raise(OpenRequested);
+        _hideItem.Click += (_, _) => Raise(HiddenToggled);
         _focusItem.Click += (_, _) => Raise(ToggleFocusRequested);
         _stopItem.Click += (_, _) => Raise(StopFocusRequested);
         _newTaskItem.Click += (_, _) => Raise(NewTaskRequested);
@@ -125,6 +133,8 @@ public sealed class TrayIconService : IDisposable
             _newTaskItem,
             _statisticsItem,
             _settingsItem,
+            new ToolStripSeparator(),
+            _hideItem,
             new ToolStripSeparator(),
             _themeItem,
             _accentItem,
@@ -207,6 +217,16 @@ public sealed class TrayIconService : IDisposable
     }
 
     /// <summary>Ticks whichever accent family is current.</summary>
+    /// <summary>Raised when the user asks for the notch to be put away, or brought back.</summary>
+    public event Action? HiddenToggled;
+
+    /// <summary>Keeps the entry saying what pressing it will actually do.</summary>
+    public void SetHidden(bool hidden)
+    {
+        _hideItem.Text = hidden ? "Show Counter" : "Hide Counter";
+        _openItem.Enabled = !hidden;
+    }
+
     public void SetAccent(string id)
     {
         _suppressEvents = true;

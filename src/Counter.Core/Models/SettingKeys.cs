@@ -19,6 +19,15 @@ public static class SettingKeys
     /// </summary>
     public const string AccentPalette = "accent_palette";
 
+    /// <summary>
+    /// Whether the notch is put away entirely. Remembered, because reappearing over somebody's
+    /// browser tabs on every restart is not a preference anybody has.
+    /// </summary>
+    public const string Hidden = "hidden";
+
+    /// <summary>Where the notch sits across the screen: Left, Centre or Right.</summary>
+    public const string HorizontalPlacement = "horizontal_placement";
+
     /// <summary>Which glass the panels are made of: Solid, Frosted or Liquid.</summary>
     public const string GlassMaterial = "glass_material";
 

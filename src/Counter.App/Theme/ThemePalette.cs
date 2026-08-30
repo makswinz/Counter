@@ -258,17 +258,21 @@ public static class ThemePalette
             (true, true, true) => new byte[] { 0x3D, 0x4A, 0x4A, 0x5C },
             (true, true, false) => new byte[] { 0x38, 0x45, 0x45, 0x56 },
 
-            // Frosted over the bare desktop.
-            (true, false, true) => new byte[] { 0xBC, 0xCA, 0xCA, 0xD6 },
-            (true, false, false) => new byte[] { 0xB8, 0xC2, 0xC2, 0xCC },
+            // Frosted over the bare desktop. Denser than it would like to be, because with
+            // nothing blurring behind it the tint is the only thing standing between the user
+            // and their own browser, and a panel you can read through is not frosted glass, it
+            // is a window.
+            (true, false, true) => new byte[] { 0xD4, 0xDE, 0xDE, 0xE6 },
+            (true, false, false) => new byte[] { 0xCE, 0xD8, 0xD8, 0xDA },
 
             // Liquid over acrylic: almost nothing, which is the entire idea of it.
             (false, true, true) => new byte[] { 0x14, 0x1F, 0x1F, 0x2E },
             (false, true, false) => new byte[] { 0x12, 0x1C, 0x1C, 0x2B },
 
-            // Liquid over the bare desktop.
-            (false, false, true) => new byte[] { 0xA8, 0xB8, 0xB8, 0xC6 },
-            _ => new byte[] { 0xA6, 0xB2, 0xB2, 0xBF }
+            // Liquid over the bare desktop. Still the thinnest of the three, but the gap
+            // between it and frosted is now carried by the edge rather than by transparency.
+            (false, false, true) => new byte[] { 0xC2, 0xCE, 0xCE, 0xD8 },
+            _ => new byte[] { 0xBC, 0xC8, 0xC8, 0xD2 }
         };
 
         var body = isLight

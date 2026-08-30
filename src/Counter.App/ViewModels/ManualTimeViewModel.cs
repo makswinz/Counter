@@ -1,3 +1,4 @@
+using CommunityToolkit.Mvvm.Input;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Counter.Core.Focus;
@@ -37,24 +38,77 @@ public sealed partial class ManualTimeViewModel : ObservableObject
 
     public Guid? TaskId { get; private set; }
 
+    /// <summary>
+    /// Whether this is time being added or time being taken off.
+    ///
+    /// The same entry either way, with the sign reversed. A timer left running over lunch is the
+    /// commonest way a total goes wrong, and the fix for it is the same shape as the fix for
+    /// having forgotten to start one.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsAdding))]
+    [NotifyPropertyChangedFor(nameof(SignedSeconds))]
+    [NotifyPropertyChangedFor(nameof(CanSave))]
+    [NotifyPropertyChangedFor(nameof(SummaryText))]
+    [NotifyPropertyChangedFor(nameof(ActionText))]
+    private bool _isRemoving;
+
+    public bool IsAdding => !IsRemoving;
+
+    /// <summary>How much time is on the dial, unsigned.</summary>
     public long TotalSeconds => Hours * 3600L + Minutes * 60L;
 
-    /// <summary>A zero entry is not an entry. Nothing is written unless there is time in it.</summary>
-    public bool CanSave => TotalSeconds > 0;
+    /// <summary>
+    /// What is actually stored: negative when removing.
+    ///
+    /// Kept as an entry rather than by editing history. The measured segments are a record of
+    /// what happened and are never rewritten; a correction is a separate, visible fact about the
+    /// same day, which is also what makes it reversible.
+    /// </summary>
+    public long SignedSeconds => IsRemoving ? -TotalSeconds : TotalSeconds;
 
-    public string SummaryText => TimeFormat.Compact(TotalSeconds);
+    /// <summary>How much can be taken off before the task reaches zero.</summary>
+    public long AvailableSeconds { get; private set; }
+
+    /// <summary>
+    /// A zero entry is not an entry, and a total cannot be driven below nothing: taking two
+    /// hours off a task with one on it would leave a negative that means nothing.
+    /// </summary>
+    public bool CanSave => TotalSeconds > 0 && (IsAdding || TotalSeconds <= AvailableSeconds);
+
+    public string ActionText => IsRemoving ? "Remove" : "Add";
+
+    public string SummaryText => (IsRemoving ? "-" : "+") + TimeFormat.Compact(TotalSeconds);
 
     public string DateLabel => Date.ToString("dddd d MMMM", CultureInfo.InvariantCulture);
 
-    public void Load(Guid? taskId, string title, DateOnly date)
+    /// <param name="available">
+    /// The time already on this task. It is the ceiling on a removal, so the dial cannot be used
+    /// to invent a negative total.
+    /// </param>
+    public void Load(Guid? taskId, string title, DateOnly date, long available)
     {
         TaskId = taskId;
         TaskTitle = title;
         Date = date;
+        AvailableSeconds = available;
+        IsRemoving = false;
         Hours = 0;
         Minutes = 30;
         Note = string.Empty;
+
+        OnPropertyChanged(nameof(AvailableSeconds));
+        OnPropertyChanged(nameof(AvailableText));
+        OnPropertyChanged(nameof(CanSave));
     }
+
+    public string AvailableText => TimeFormat.Spent(AvailableSeconds) + " on this task";
+
+    [RelayCommand]
+    private void UseAdding() => IsRemoving = false;
+
+    [RelayCommand]
+    private void UseRemoving() => IsRemoving = true;
 
     partial void OnHoursChanged(int value)
     {

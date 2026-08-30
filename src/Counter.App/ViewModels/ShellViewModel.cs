@@ -468,6 +468,12 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     /// <summary>Called by the host after each repaint, with what the compositor actually did.</summary>
     public void ReportGlassBlur(bool refused) => GlassBlurUnavailable = refused;
 
+    /// <summary>Raised when the user asks to be taken to the Windows setting that governs it.</summary>
+    public event Action? TransparencySettingRequested;
+
+    [RelayCommand]
+    private void OpenTransparencySetting() => TransparencySettingRequested?.Invoke();
+
     // =================================================================================
     // Inline add / edit form
     // =================================================================================
@@ -1635,7 +1641,9 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             OpenQuickView();
         }
 
-        ManualTime.Load(row.Id, row.Title, row.Model.ScheduledDate ?? TodayDate);
+        // The row already knows the total, and the dialog needs it: it is the ceiling on how
+        // much can be taken off.
+        ManualTime.Load(row.Id, row.Title, row.Model.ScheduledDate ?? TodayDate, row.Time.TotalSeconds);
         Overlay.OpenOverlay(ViewModels.OverlayKind.ManualTime);
     }
 
@@ -1653,7 +1661,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             TaskId = ManualTime.TaskId,
             TaskTitle = ManualTime.TaskTitle,
             LocalDate = ManualTime.Date,
-            Seconds = ManualTime.TotalSeconds,
+            Seconds = ManualTime.SignedSeconds,
             Note = string.IsNullOrWhiteSpace(ManualTime.Note) ? null : ManualTime.Note.Trim(),
             CreatedAtUtc = _clock.UtcNow
         };
@@ -1669,12 +1677,13 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             return;
         }
 
-        Diag.Write("time", "manual-added", ("task", entry.TaskId), ("date", entry.LocalDate),
+        Diag.Write("time", "manual-adjusted", ("task", entry.TaskId), ("date", entry.LocalDate),
             ("seconds", entry.Seconds));
 
         Overlay.CloseOverlay();
 
-        // A positive manual entry is a contribution, so the day it names lights up immediately.
+        // A positive entry is a contribution, so the day it names lights up immediately. A
+        // negative one is a correction and takes the day back down with it.
         RefreshTaskTimes("manual-time");
         RefreshJourney("manual-time");
         RefreshStatistics("manual-time");

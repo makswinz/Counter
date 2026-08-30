@@ -282,8 +282,8 @@
                                     Icon="Clock"
                                     Opacity="0"
                                     Command="{Binding AddTimeCommand}"
-                                    AutomationProperties.Name="Add time to this task"
-                                    ToolTip="Record time spent without a timer" />
+                                    AutomationProperties.Name="Adjust time on this task"
+                                    ToolTip="Add or remove time on this task" />
 
                     <ctl:IconButton x:Name="EditButton"
                                     Grid.Column="8"
@@ -1495,11 +1495,21 @@
                                          translucent materials are only thinner glass. Better to
                                          say so than to let a panel look broken for obeying a
                                          preference. -->
-                                    <TextBlock Style="{StaticResource TextMeta}"
-                                               Margin="{StaticResource GapBelow8}"
-                                               TextWrapping="Wrap"
-                                               Text="Windows transparency effects are off, so there is nothing to blur behind the glass. Turn them on in Settings, Personalisation, Colours."
-                                               Visibility="{Binding GlassBlurUnavailable, Converter={StaticResource BoolToVis}}" />
+                                    <StackPanel Visibility="{Binding GlassBlurUnavailable, Converter={StaticResource BoolToVis}}"
+                                                Margin="{StaticResource GapBelow8}">
+                                        <TextBlock Style="{StaticResource TextMeta}"
+                                                   TextWrapping="Wrap"
+                                                   Margin="{StaticResource GapBelow4}"
+                                                   Text="Windows transparency effects are off, so there is nothing behind the glass to blur. Frosted and Liquid fall back to a denser sheet." />
+                                        <Button Style="{StaticResource GhostButton}"
+                                                Height="24"
+                                                MinWidth="0"
+                                                HorizontalAlignment="Left"
+                                                Content="Turn them on"
+                                                Command="{Binding OpenTransparencySettingCommand}"
+                                                ToolTip="Opens Windows Settings, Personalisation, Colours"
+                                                AutomationProperties.Name="Open the Windows transparency setting" />
+                                    </StackPanel>
 
                                     <!-- Six families. Pressing one changes every accent-driven
                                          colour in the interface at once, and stores nothing but
@@ -1744,6 +1754,80 @@
                                                    Margin="10,0,0,0"
                                                    Text="{Binding AccentName}" />
                                     </Grid>
+
+                                    <!-- ================================ Shortcuts -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,6">
+                                        <ctl:AppIcon Kind="Options"
+                                                     IconSize="{StaticResource IconSizeTiny}"
+                                                     Foreground="{DynamicResource TextMutedBrush}"
+                                                     Margin="0,0,6,0" />
+                                        <TextBlock Style="{StaticResource TextSection}" Text="Shortcuts" />
+                                    </StackPanel>
+
+                                    <!-- A global shortcut outranks every application shortcut on
+                                         the machine, so each one has to be switchable off. Any
+                                         default collides with something somebody uses. -->
+                                    <ItemsControl ItemsSource="{Binding Shortcuts}"
+                                                  Focusable="False"
+                                                  Margin="{StaticResource GapBelow8}"
+                                                  AutomationProperties.Name="Global shortcuts">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type vm:ShortcutViewModel}">
+                                                <Grid Margin="0,0,0,4">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0"
+                                                               Style="{StaticResource TextMeta}"
+                                                               VerticalAlignment="Center"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               Text="{Binding Description}" />
+                                                    <ToggleButton Grid.Column="1"
+                                                                  Style="{StaticResource FilterPill}"
+                                                                  Content="{Binding GestureText}"
+                                                                  IsChecked="{Binding IsEnabled, Mode=OneWay}"
+                                                                  Command="{Binding ToggleCommand}"
+                                                                  ToolTip="Turn this shortcut on or off"
+                                                                  AutomationProperties.Name="{Binding AccessibleName}" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <!-- Where it sits across the screen. A browser keeps its
+                                         tabs where the centre placement is, and stepping aside
+                                         beats putting the whole thing away. -->
+                                    <StackPanel Orientation="Horizontal" Margin="{StaticResource GapBelow8}">
+                                        <ToggleButton Style="{StaticResource FilterPill}"
+                                                      Content="Left"
+                                                      Margin="{StaticResource GapRight4}"
+                                                      IsChecked="{Binding IsPlacedLeft, Mode=OneWay}"
+                                                      Command="{Binding PlaceLeftCommand}"
+                                                      ToolTip="Move the notch to the left of the screen"
+                                                      AutomationProperties.Name="Place the notch on the left" />
+                                        <ToggleButton Style="{StaticResource FilterPill}"
+                                                      Content="Centre"
+                                                      Margin="{StaticResource GapRight4}"
+                                                      IsChecked="{Binding IsPlacedCentre, Mode=OneWay}"
+                                                      Command="{Binding PlaceCentreCommand}"
+                                                      ToolTip="Keep the notch centred"
+                                                      AutomationProperties.Name="Place the notch in the centre" />
+                                        <ToggleButton Style="{StaticResource FilterPill}"
+                                                      Content="Right"
+                                                      Margin="{StaticResource GapRight8}"
+                                                      IsChecked="{Binding IsPlacedRight, Mode=OneWay}"
+                                                      Command="{Binding PlaceRightCommand}"
+                                                      ToolTip="Move the notch to the right of the screen"
+                                                      AutomationProperties.Name="Place the notch on the right" />
+                                        <Button Style="{StaticResource GhostButton}"
+                                                Height="24"
+                                                MinWidth="0"
+                                                Content="Hide"
+                                                Command="{Binding HideCommand}"
+                                                ToolTip="Put the notch away. The tray icon brings it back."
+                                                AutomationProperties.Name="Hide Counter" />
+                                    </StackPanel>
 
                                     <!-- ================================ Focus -->
                                     <StackPanel Orientation="Horizontal" Margin="0,4,0,6">
@@ -2293,7 +2377,7 @@
                                      IconSize="{StaticResource IconSizeTiny}"
                                      Foreground="{DynamicResource TextMutedBrush}"
                                      Margin="0,0,6,0" />
-                        <TextBlock Style="{StaticResource TextSection}" Text="Add time" />
+                        <TextBlock Style="{StaticResource TextSection}" Text="Adjust time" />
                     </StackPanel>
 
                     <TextBlock Style="{StaticResource TextSecondary}"
@@ -2301,8 +2385,29 @@
                                Text="{Binding TaskTitle}"
                                ToolTip="{Binding TaskTitle}" />
                     <TextBlock Style="{StaticResource TextMeta}"
-                               Margin="{StaticResource GapBelow8}"
                                Text="{Binding DateLabel}" />
+                    <TextBlock Style="{StaticResource TextMeta}"
+                               Margin="{StaticResource GapBelow8}"
+                               Text="{Binding AvailableText}" />
+
+                    <!-- Which way the entry goes. A timer left running over lunch is the
+                         commonest way a total goes wrong, and correcting it is the same shape
+                         as having forgotten to start one. -->
+                    <StackPanel Orientation="Horizontal" Margin="{StaticResource GapBelow8}">
+                        <ToggleButton Style="{StaticResource FilterPill}"
+                                      Content="Add"
+                                      Margin="{StaticResource GapRight4}"
+                                      IsChecked="{Binding IsAdding, Mode=OneWay}"
+                                      Command="{Binding UseAddingCommand}"
+                                      ToolTip="Add time to this task"
+                                      AutomationProperties.Name="Add time" />
+                        <ToggleButton Style="{StaticResource FilterPill}"
+                                      Content="Remove"
+                                      IsChecked="{Binding IsRemoving, Mode=OneWay}"
+                                      Command="{Binding UseRemovingCommand}"
+                                      ToolTip="Take time back off this task"
+                                      AutomationProperties.Name="Remove time" />
+                    </StackPanel>
 
                     <Grid Margin="{StaticResource GapBelow8}">
                         <Grid.ColumnDefinitions>
@@ -2322,7 +2427,7 @@
                         <TextBox Grid.Row="1" Grid.Column="0"
                                  Style="{StaticResource DurationTextBox}"
                                  Text="{Binding Hours, UpdateSourceTrigger=PropertyChanged, FallbackValue=0}"
-                                 AutomationProperties.Name="Hours to add"
+                                 AutomationProperties.Name="Hours"
                                  ToolTip="Hours, 0 to 99" />
                         <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource TextDisplayNumber}"
                                    Foreground="{DynamicResource TextMutedBrush}" Text=":"
@@ -2330,7 +2435,7 @@
                         <TextBox Grid.Row="1" Grid.Column="2"
                                  Style="{StaticResource DurationTextBox}"
                                  Text="{Binding Minutes, UpdateSourceTrigger=PropertyChanged, FallbackValue=30}"
-                                 AutomationProperties.Name="Minutes to add"
+                                 AutomationProperties.Name="Minutes"
                                  ToolTip="Minutes, 0 to 59" />
                         <TextBlock Grid.Row="1" Grid.Column="3"
                                    Style="{StaticResource TextMeta}"
@@ -2352,10 +2457,11 @@
                                 Command="{Binding DataContext.CancelManualTimeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                 AutomationProperties.Name="Cancel" />
                         <Button Style="{StaticResource PrimaryButton}"
-                                Content="Add time"
+                                Content="{Binding ActionText}"
                                 IsEnabled="{Binding CanSave}"
                                 Command="{Binding DataContext.SaveManualTimeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                AutomationProperties.Name="Add this time to the task" />
+                                ToolTip="{Binding SummaryText}"
+                                AutomationProperties.Name="Apply this adjustment to the task" />
                     </StackPanel>
                 </StackPanel>
             </ctl:LiquidGlassPanel>

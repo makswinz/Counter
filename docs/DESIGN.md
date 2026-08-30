@@ -946,7 +946,7 @@ tests/
 dotnet test Counter.sln
 ```
 
-683 tests, no sleeping anywhere: `TestClock` is an `IClock` the tests advance by hand, which is
+711 tests, no sleeping anywhere: `TestClock` is an `IClock` the tests advance by hand, which is
 what makes the timing assertions exact rather than flaky.
 
 | Area | What is covered |

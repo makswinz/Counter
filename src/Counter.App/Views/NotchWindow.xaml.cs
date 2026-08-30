@@ -193,6 +193,21 @@ public partial class NotchWindow : Window
         ApplyPanelVisuals(animate: false);
     }
 
+    /// <summary>
+    /// Moves the notch across the screen. A browser keeps its tabs where this normally sits, and
+    /// stepping aside is a better answer than putting the whole thing away.
+    /// </summary>
+    public void SetPlacement(NotchPlacement placement)
+    {
+        if (_geometry is null || _geometry.Placement == placement)
+        {
+            return;
+        }
+
+        _geometry.Placement = placement;
+        _geometry.Reposition();
+    }
+
     public void SetMonitor(MonitorInfo monitor)
     {
         _monitor = monitor;
